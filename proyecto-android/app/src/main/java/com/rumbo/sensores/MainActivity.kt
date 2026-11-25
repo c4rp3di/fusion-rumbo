@@ -2,6 +2,10 @@ package com.rumbo.sensores
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.bluetooth.BluetoothManager
+import android.bluetooth.le.ScanCallback
+import android.bluetooth.le.ScanResult
+import android.bluetooth.le.ScanSettings
 import android.content.Context
 import android.content.pm.PackageManager
 import android.hardware.ConsumerIrManager
@@ -13,6 +17,7 @@ import android.hardware.SensorManager
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
+import android.net.wifi.WifiManager
 import android.nfc.NdefRecord
 import android.nfc.NfcAdapter
 import android.nfc.Tag
@@ -41,6 +46,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener,
     private companion object {
         const val PERM_LOC = 11
         const val PERM_ACT = 12
+        const val PERM_BLE = 13
     }
 
     private lateinit var web: WebView
@@ -52,6 +58,8 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener,
     @Volatile private var wantHead = false
     @Volatile private var wantSteps = false
     @Volatile private var wantNfc = false
+    @Volatile private var wantBle = false
+    private val bleLast = HashMap<String, Long>()
     private val streams = HashMap<Int, Long>()
     private val lastPush = HashMap<Int, Long>()
     private var decl = 0f
@@ -79,6 +87,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener,
         sm.unregisterListener(this)
         try { lm.removeUpdates(this) } catch (e: Exception) { }
         try { NfcAdapter.getDefaultAdapter(this)?.disableReaderMode(this) } catch (e: Exception) { }
+        endBle()
     }
 
     override fun onResume() {
@@ -90,6 +99,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener,
         for ((t, ms) in streams) reg(t, ms <= 70L)
         if (wantLoc && has(Manifest.permission.ACCESS_FINE_LOCATION)) beginLoc()
         if (wantNfc) enableNfc()
+        if (wantBle && blePermsOk()) beginBle()
     }
 
     // ---------- utilidades ----------
@@ -173,6 +183,11 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener,
             js("onNative", "{\"k\":\"perm\",\"what\":\"loc\",\"ok\":$fine}")
             if (fine && wantLoc) beginLoc()
         }
+        if (requestCode == PERM_BLE) {
+            val all = grantResults.isNotEmpty() && grantResults.all { it == PackageManager.PERMISSION_GRANTED }
+            js("onNative", "{\"k\":\"perm\",\"what\":\"ble\",\"ok\":$all}")
+            if (all && wantBle) beginBle()
+        }
         if (requestCode == PERM_ACT) {
             js("onNative", "{\"k\":\"perm\",\"what\":\"steps\",\"ok\":$ok}")
             if (ok && wantSteps) reg(Sensor.TYPE_STEP_DETECTOR, true)
@@ -224,6 +239,78 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener,
         val dr = Math.round(decl * 10f) / 10f
         val acc = Math.min(rotAcc, magAcc)
         js("onHead", "{\"h\":$hr,\"acc\":$acc,\"d\":$dr}")
+    }
+
+    // ---------- Bluetooth LE y Wi-Fi (rastreo) ----------
+
+    private fun blePerms(): Array<String> =
+        if (Build.VERSION.SDK_INT >= 31) arrayOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.ACCESS_FINE_LOCATION)
+        else arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
+
+    private fun blePermsOk(): Boolean = blePerms().all { has(it) }
+
+    private val bleCb = object : ScanCallback() {
+        override fun onScanResult(callbackType: Int, result: ScanResult) {
+            val a = result.device.address
+            val now = SystemClock.elapsedRealtime()
+            if (now - (bleLast[a] ?: 0L) < 250L) return
+            bleLast[a] = now
+            val rec = result.scanRecord
+            var man = -1
+            val md = rec?.manufacturerSpecificData
+            if (md != null && md.size() > 0) man = md.keyAt(0)
+            val tx = rec?.txPowerLevel ?: Int.MIN_VALUE
+            val o = JSONObject()
+            o.put("a", a)
+            o.put("n", rec?.deviceName ?: "")
+            o.put("r", result.rssi)
+            o.put("m", man)
+            o.put("t", if (tx == Int.MIN_VALUE) JSONObject.NULL else tx)
+            js("onBle", o.toString())
+        }
+
+        override fun onScanFailed(errorCode: Int) {
+            js("onNative", "{\"k\":\"ble\",\"err\":$errorCode}")
+        }
+    }
+
+    /** "ok", "off" (Bluetooth apagado) o "nobt" (sin Bluetooth LE). */
+    @SuppressLint("MissingPermission")
+    private fun beginBle(): String {
+        val bm = getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager ?: return "nobt"
+        val ad = bm.adapter ?: return "nobt"
+        if (!ad.isEnabled) { js("onNative", "{\"k\":\"bt\",\"on\":false}"); return "off" }
+        val sc = ad.bluetoothLeScanner ?: return "off"
+        return try {
+            sc.startScan(null, ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build(), bleCb)
+            "ok"
+        } catch (e: Exception) { "err" }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun endBle() {
+        try {
+            val bm = getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
+            bm?.adapter?.bluetoothLeScanner?.stopScan(bleCb)
+        } catch (e: Exception) { }
+    }
+
+    @Suppress("DEPRECATION")
+    @SuppressLint("MissingPermission")
+    private fun pushWifi(w: WifiManager) {
+        try {
+            val arr = JSONArray()
+            for (r in w.scanResults) {
+                val x = JSONObject()
+                x.put("s", r.SSID ?: "")
+                x.put("b", r.BSSID ?: "")
+                x.put("l", r.level)
+                x.put("f", r.frequency)
+                x.put("c", r.capabilities ?: "")
+                arr.put(x)
+            }
+            js("onWifi", arr.toString())
+        } catch (e: Exception) { }
     }
 
     // ---------- NFC ----------
@@ -377,14 +464,65 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener,
             }
         }
 
+        /** Datos del emisor infrarrojo: si existe y qué rangos de portadora admite (Hz). */
+        @JavascriptInterface
+        fun irInfo(): String {
+            val o = JSONObject()
+            val ir = this@MainActivity.getSystemService(Context.CONSUMER_IR_SERVICE) as? ConsumerIrManager
+            val has = ir?.hasIrEmitter() == true
+            o.put("has", has)
+            val arr = JSONArray()
+            if (has) {
+                val rs = ir?.carrierFrequencies
+                if (rs != null) for (r in rs) arr.put(JSONArray().put(r.minFrequency).put(r.maxFrequency))
+            }
+            o.put("ranges", arr)
+            return o.toString()
+        }
+
         /** Emite un patrón infrarrojo: frecuencia en Hz y duraciones en µs separadas por comas. */
         @JavascriptInterface
         fun irSend(freq: Int, pattern: String): String {
             val ir = this@MainActivity.getSystemService(Context.CONSUMER_IR_SERVICE) as? ConsumerIrManager ?: return "no"
             if (!ir.hasIrEmitter()) return "no"
+            val rs = ir.carrierFrequencies
+            if (rs != null && rs.isNotEmpty() && rs.none { freq >= it.minFrequency && freq <= it.maxFrequency }) return "freq"
             val p = pattern.split(",").mapNotNull { it.trim().toIntOrNull() }.toIntArray()
             if (p.isEmpty()) return "bad"
             return try { ir.transmit(freq, p); "ok" } catch (e: Exception) { "err" }
+        }
+
+        /** "ok", "noperm" (pidiendo permisos; avisará por onNative), "off" o "nobt". */
+        @JavascriptInterface
+        fun startBle(): String {
+            wantBle = true
+            if (!blePermsOk()) {
+                runOnUiThread { ActivityCompat.requestPermissions(this@MainActivity, blePerms(), PERM_BLE) }
+                return "noperm"
+            }
+            return beginBle()
+        }
+
+        @JavascriptInterface
+        fun stopBle() {
+            wantBle = false
+            endBle()
+        }
+
+        /** Pide un escaneo Wi-Fi y devuelve la lista por window.onWifi (ahora y 4 s después). */
+        @Suppress("DEPRECATION")
+        @JavascriptInterface
+        fun wifiScan(): String {
+            if (!has(Manifest.permission.ACCESS_FINE_LOCATION)) {
+                runOnUiThread { askLoc() }
+                return "noperm"
+            }
+            val w = this@MainActivity.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager ?: return "nowifi"
+            if (!w.isWifiEnabled) return "off"
+            try { w.startScan() } catch (e: Exception) { }
+            pushWifi(w)
+            main.postDelayed({ pushWifi(w) }, 4000L)
+            return "ok"
         }
 
         @JavascriptInterface
