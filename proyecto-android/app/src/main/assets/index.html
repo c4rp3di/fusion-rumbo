@@ -33,10 +33,15 @@ button:active{transform:scale(.98)}button:disabled{opacity:.5}
 .txt{white-space:pre-wrap;word-break:break-word;margin-top:6px;-webkit-user-select:text;user-select:text}
 button.on{opacity:.85}
 #dim{position:fixed;inset:0;z-index:9;background:#000;color:#333;display:flex;align-items:center;justify-content:center;font-size:.9rem}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 10px}
+.tabs button{font-size:.88rem;padding:0 4px}
+details{margin:8px 0}summary{cursor:pointer;font-weight:600;color:var(--acc);min-height:32px}
+details p,.ex p{margin:6px 0}
+.bar{height:14px;border-radius:7px;background:var(--line);overflow:hidden;margin:8px 0}.bar i{display:block;height:100%;width:0;background:var(--acc);transition:width .15s}
 [hidden]{display:none!important}
 </style></head><body><main>
 <h1>Rumbo</h1>
-<div class="tabs" role="tablist"><button id="t_volver" type="button" role="tab" aria-selected="true">Volver</button><button id="t_sendero" type="button" role="tab" aria-selected="false">Sendero</button><button id="t_sens" type="button" role="tab" aria-selected="false">Sensores</button></div>
+<div class="tabs" role="tablist"><button id="t_volver" type="button" role="tab" aria-selected="true">Volver</button><button id="t_sendero" type="button" role="tab" aria-selected="false">Sendero</button><button id="t_rastreo" type="button" role="tab" aria-selected="false">Rastreo</button><button id="t_sens" type="button" role="tab" aria-selected="false">Sensores</button></div>
 <section id="p_volver">
   <div id="v_st" class="msg"></div>
   <div class="card center"><div id="v_dial"></div><div id="v_dist" class="big">—</div><div id="v_sub" class="hint"></div></div>
@@ -56,11 +61,59 @@ button.on{opacity:.85}
   <div class="card"><label for="s_len">Longitud de paso (cm)</label><input id="s_len" type="number" min="40" max="110" inputmode="numeric">
     <p class="hint">Se afina sola cuando hay GPS y caminas en recto. Lleva el móvil en la mano, de frente: en el bolsillo los pasos y la brújula fallan más.</p></div>
 </section>
+<section id="p_rastreo" hidden>
+  <div id="r_info" class="msg"></div>
+  <div class="card"><b>Rastreo de la zona</b>
+    <details><summary>¿Qué puede y qué no puede encontrar?</summary><div class="hint">
+      <p>Los infrarrojos no sirven para rastrear: el emisor solo envía y no puede recibir. Lo que sí se puede es escuchar lo que emiten los equipos: Bluetooth (auriculares, relojes, balizas, altavoces), Wi-Fi (routers, repetidores, cámaras) y el campo magnético (metal, imanes, motores y cables con corriente).</p>
+      <p>No encuentra aparatos apagados ni los que no emiten, y no da distancias exactas: la señal rebota y varía. Úsalo para localizar tus propias cosas y equipos.</p></div></details></div>
+  <div class="card"><b>Bluetooth</b>
+    <details><summary>¿Qué es y cómo se usa?</summary><div class="hint">
+      <p><b>Qué es.</b> Escucha los anuncios Bluetooth de baja energía de los aparatos cercanos y mide su fuerza (dBm).</p>
+      <p><b>Para qué sirve.</b> Encontrar auriculares, llaves con baliza, un reloj o un equipo perdido o escondido que esté encendido.</p>
+      <p><b>Cómo se usa.</b> Pulsa «Buscar», elige un aparato con «Seguir» y camina despacio: cuanto más cerca, más rápido suena y vibra. Muchos aparatos cambian de dirección cada pocos minutos y algunos no aparecen si no emiten.</p></div></details>
+    <div class="row" style="margin-top:8px"><button id="r_bleb" class="main" type="button">Buscar dispositivos</button></div>
+    <div id="r_follow" class="card" hidden>
+      <b id="r_fn"></b><div class="bar"><i id="r_fbar"></i></div><div id="r_fdb" class="hint"></div>
+      <div class="row" style="margin:10px 0 0"><label style="margin:0;display:flex;gap:6px;align-items:center;font-weight:500"><input id="r_snd" type="checkbox" checked style="width:22px;min-height:0;height:22px"> Sonido</label><label style="margin:0;display:flex;gap:6px;align-items:center;font-weight:500"><input id="r_vib" type="checkbox" checked style="width:22px;min-height:0;height:22px"> Vibración</label><button id="r_fstop" type="button">Dejar de seguir</button></div></div>
+    <div id="r_ble"></div></div>
+  <div class="card"><b>Wi-Fi</b>
+    <details><summary>¿Qué es y cómo se usa?</summary><div class="hint">
+      <p><b>Qué es.</b> Lista las redes Wi-Fi que oye el móvil, con su canal, banda, seguridad y señal.</p>
+      <p><b>Para qué sirve.</b> Localizar routers y equipos con Wi-Fi, ver redes ocultas o abiertas y elegir el canal menos saturado.</p>
+      <p><b>Cómo se usa.</b> Pulsa «Escanear». Android limita a unos 4 escaneos cada 2 minutos, así que no sirve para seguir un equipo en tiempo real. Necesita la ubicación del móvil activada.</p></div></details>
+    <div class="row" style="margin-top:8px"><button id="r_wifib" class="main" type="button">Escanear redes</button></div><div id="r_wifi"></div></div>
+  <div class="card"><b>Campo magnético</b>
+    <details><summary>¿Qué es y cómo se usa?</summary><div class="hint">
+      <p><b>Qué es.</b> Un detector que usa el magnetómetro del móvil y avisa cuando el campo cambia respecto a donde empezaste.</p>
+      <p><b>Para qué sirve.</b> Encontrar metal, imanes, motores, altavoces y cables con corriente detrás de una pared o en un mueble.</p>
+      <p><b>Cómo se usa.</b> Pulsa «Iniciar» con el móvil quieto y lejos de metales (se calibra solo). Pásalo despacio a 5-10 cm de la superficie: sube la barra y suena más rápido cerca de lo que busca.</p></div></details>
+    <div class="row" style="margin-top:8px"><button id="r_magb" class="main" type="button">Iniciar detector</button><button id="r_magr" type="button">Recalibrar</button></div>
+    <div class="bar"><i id="r_mbar"></i></div><div id="r_magv" class="hint"></div></div>
+</section>
 <section id="p_sens" hidden>
   <div id="x_info" class="msg"></div>
   <div id="x_quick"></div>
-  <div class="card"><b>NFC</b><div id="x_nfc" class="hint"></div><div class="row" style="margin:10px 0 0"><button id="x_nfcb" type="button">Leer etiqueta NFC</button></div><div id="x_tag" class="txt"></div></div>
-  <div id="x_live" class="card" hidden><b id="x_ln"></b><div id="x_lv" class="mor"></div><div id="x_ld" class="hint"></div><div class="row" style="margin:10px 0 0"><button id="x_stop" type="button">Cerrar</button></div></div>
+  <div class="card" id="x_ir"><b>Infrarrojos (mando a distancia)</b>
+    <div id="ir_st" class="hint"></div>
+    <details><summary>¿Qué es y cómo se usa?</summary><div id="ir_ex" class="hint"></div></details>
+    <div id="ir_ui">
+      <label for="ir_pre">Ejemplo</label><select id="ir_pre"></select>
+      <label for="ir_proto" style="margin-top:10px">Protocolo</label>
+      <select id="ir_proto"><option value="nec">NEC (LG y muchos más)</option><option value="samsung">Samsung</option><option value="sony">Sony (12 bits)</option><option value="pronto">Código Pronto</option><option value="raw">Crudo (µs)</option></select>
+      <div id="ir_ac" class="two" style="margin-top:10px"><div><label for="ir_a">Dirección (hex)</label><input id="ir_a" autocapitalize="off" placeholder="04"></div><div><label for="ir_c">Comando (hex)</label><input id="ir_c" autocapitalize="off" placeholder="08"></div></div>
+      <div id="ir_tx" hidden style="margin-top:10px"><label for="ir_txt">Código</label><textarea id="ir_txt" placeholder="0000 006D 0022 0000 …"></textarea>
+        <div id="ir_fw" hidden style="margin-top:10px"><label for="ir_f">Frecuencia (Hz)</label><input id="ir_f" value="38000" inputmode="numeric"></div></div>
+      <div class="row" style="margin-top:10px"><button id="ir_send" class="main" type="button">Enviar</button><button id="ir_send3" type="button">Enviar ×3</button></div>
+      <div class="row"><button id="ir_all" type="button">Probar las 3 marcas</button></div>
+      <div id="ir_msg" class="msg" role="status" aria-live="polite"></div>
+    </div>
+  </div>
+  <div class="card" id="x_nfccard"><b>NFC</b><div id="x_nfc" class="hint"></div>
+    <details><summary>¿Qué es y cómo se usa?</summary><div id="x_nfcex" class="hint"></div></details>
+    <div class="row" style="margin:10px 0 0"><button id="x_nfcb" type="button">Leer etiqueta NFC</button></div><div id="x_tag" class="txt"></div></div>
+  <div id="x_live" class="card" hidden><b id="x_ln"></b><div id="x_lv" class="mor"></div><div id="x_ld" class="hint"></div><div id="x_ex" class="hint"></div><div class="row" style="margin:10px 0 0"><button id="x_stop" type="button">Cerrar</button></div></div>
+  <h2 style="font-size:1.05rem;margin:14px 2px 8px">Todos los sensores del móvil</h2>
   <div id="x_list"></div>
 </section>
 </main>
@@ -146,6 +199,32 @@ function baroTrend(s,now){var tg=now-3*3600e3,b=null,i;
   var c=s[s.length-1],h=(c.t-b.t)/3600e3;return h<=0?null:(c.p-b.p)/h*3}
 /*CORE-END*/
 
+/*IR-START*/
+function irBits(v,n){var b=[],i;for(i=0;i<n;i++)b.push((v>>i)&1);return b}
+function irNEC(addr,cmd){
+  var bits=irBits(addr&255,8).concat(irBits(~addr&255,8),irBits(cmd&255,8),irBits(~cmd&255,8)),p=[9000,4500];
+  bits.forEach(function(b){p.push(560,b?1690:560)});p.push(560);return{freq:38000,pattern:p}}
+function irSamsung(addr,cmd){
+  var bits=irBits(addr&255,8).concat(irBits(addr&255,8),irBits(cmd&255,8),irBits(~cmd&255,8)),p=[4500,4500];
+  bits.forEach(function(b){p.push(560,b?1690:560)});p.push(560);return{freq:38000,pattern:p}}
+function irSony(cmd,addr){
+  var bits=irBits(cmd&127,7).concat(irBits(addr&31,5)),one=[2400,600],len=0,p=[],i,f;
+  bits.forEach(function(b){one.push(b?1200:600,600)});one.forEach(function(x){len+=x});
+  for(i=0;i<3;i++){f=one.slice();if(i<2)f[f.length-1]+=Math.max(0,45000-len);p=p.concat(f)}
+  return{freq:40000,pattern:p}}
+function irPronto(s){
+  var w=String(s).trim().split(/\s+/).map(function(x){return parseInt(x,16)});
+  if(w.length<6||w.some(isNaN)||w[0]!==0)return null;
+  var unit=w[1]*0.241246,n=(w[2]||w[3])*2,seq=w.slice(4,4+n);
+  if(!unit||seq.length<2||seq.length!==n)return null;
+  return{freq:Math.round(1e6/unit),pattern:seq.map(function(x){return Math.round(x*unit)})}}
+function irRaw(freq,s){
+  var n=String(s).split(/[^\d]+/).filter(Boolean).map(Number);
+  if(n.length<2||n.some(function(x){return !x||x>200000})||!(freq>=15000&&freq<=60000))return null;
+  return{freq:+freq,pattern:n}}
+var IR_PRE={"Samsung TV · encender/apagar":{p:"samsung",a:"07",c:"02"},"LG TV · encender/apagar":{p:"nec",a:"04",c:"08"},"Sony TV · encender/apagar":{p:"sony",a:"01",c:"15"}};
+/*IR-END*/
+
 /*PROV-START*/
 var NB=window.Rumbo||null;
 function $(id){return document.getElementById(id)}
@@ -194,6 +273,7 @@ var Steps=(function(){var b=bus(),o={on:b.on,run:false,mode:"",n:0};
   o.fire=fire;return o})();
 window.onStep=function(){Steps.fire()};
 window.onNative=function(m){
+  if(window.__onNat)window.__onNat(m);
   if(m.k==="gps")Loc.err=m.on?0:2;
   if(m.k==="perm"){if(m.what==="loc"&&!m.ok)Loc.err=1;
     if(m.what==="steps"){if(m.ok)Steps.mode="ok";else{Steps.mode="accel";Steps.denied=true;if(NB)NB.startSensor(1,50)}}}};
@@ -305,12 +385,120 @@ function initSendero(){
   if(T.pts.length)say("Hay un rastro guardado ("+T.pts.length+" puntos). Puedes volver al inicio o reiniciar.")}
 /*SENDERO-END*/
 
+/*RASTREO-START*/
+var Geiger=(function(){var p=0,on=false,ctx=null,timer=null,snd=true,vib=true;
+  function beep(f){if(!snd)return;try{ctx=ctx||new(window.AudioContext||window.webkitAudioContext)();var o=ctx.createOscillator(),g=ctx.createGain();
+    o.frequency.value=f;g.gain.value=0.25;o.connect(g);g.connect(ctx.destination);o.start();o.stop(ctx.currentTime+0.06)}catch(e){}}
+  function loop(){if(!on)return;if(p>0.02){beep(450+800*p);if(vib&&navigator.vibrate)navigator.vibrate(40)}timer=setTimeout(loop,p>0.02?1100-1000*p:400)}
+  return{start:function(){if(on)return;on=true;loop()},stop:function(){on=false;p=0;clearTimeout(timer)},set:function(v){p=v},opt:function(s,v){snd=s;vib=v}}})();
+function initRastreo(){
+  var info=$("r_info");
+  if(!NB){info.textContent="Esta pestaña necesita la app nativa (APK de Rumbo): el navegador no puede escanear Bluetooth ni Wi-Fi.";
+    Array.prototype.forEach.call(document.querySelectorAll("#p_rastreo button"),function(b){b.disabled=true});return}
+  var MAK={76:"Apple",6:"Microsoft",117:"Samsung",224:"Google",911:"Xiaomi",741:"Espressif",89:"Nordic",135:"Garmin",369:"Amazon",637:"Huawei"};
+  var devs={},sel=null,bleOn=false,waiting=false,rT=null,wT=null,hist=[],wifi=[],bleB=$("r_bleb"),fb=$("r_follow"),magOn=false,base=0,bn=0,bs=0,dev=0;
+  function clamp(x,a,b){return Math.max(a,Math.min(b,x))}
+  function say(s,t){info.textContent=s||"";info.className="msg"+(t?" "+t:"")}
+  function near(r){return r>-50?"muy cerca (<1 m)":r>-65?"cerca (1-3 m)":r>-80?"a unos metros":"lejos"}
+  /* ---- Bluetooth ---- */
+  window.onBle=function(d){var o=devs[d.a];if(!o)o=devs[d.a]={a:d.a,n:"",m:-1,r:d.r};else o.r+=(d.r-o.r)*0.35;
+    if(d.n)o.n=d.n;if(d.m>=0)o.m=d.m;o.last=Date.now();if(sel===d.a)seguir(o)};
+  function seguir(o){var now=Date.now(),p=clamp((o.r+95)/55,0,1);hist.push({t:now,r:o.r});while(hist.length&&now-hist[0].t>6000)hist.shift();
+    var d=hist.length>2?o.r-hist[0].r:0;
+    $("r_fn").textContent=(o.n||"Sin nombre")+(MAK[o.m]?" · "+MAK[o.m]:"");$("r_fbar").style.width=Math.round(p*100)+"%";
+    $("r_fdb").textContent=Math.round(o.r)+" dBm · "+near(o.r)+(d>2?" · te acercas":d<-2?" · te alejas":"");Geiger.set(p)}
+  function renderBle(){
+    var now=Date.now(),k,arr=[];for(k in devs){if(now-devs[k].last>25000)delete devs[k];else arr.push(devs[k])}
+    arr.sort(function(a,b){return b.r-a.r});
+    $("r_ble").innerHTML=arr.length?arr.slice(0,40).map(function(o){return'<div class="pt'+(o.a===sel?" sel":"")+'"><div class="pi"><b>'+esc(o.n||"Sin nombre")+'</b><small>'+esc(MAK[o.m]||(o.m>=0?"fabricante "+o.m:"fabricante desconocido"))+' · '+Math.round(o.r)+' dBm · '+near(o.r)+'</small></div><div class="pb"><button data-a="'+esc(o.a)+'">'+(o.a===sel?"Siguiendo":"Seguir")+'</button></div></div>'}).join(""):'<p class="hint">'+(bleOn?"Buscando…":"Pulsa «Buscar dispositivos».")+'</p>';
+    if(sel&&devs[sel]&&now-devs[sel].last>4000){$("r_fdb").textContent="Sin señal ahora mismo";Geiger.set(0)}}
+  $("r_ble").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;
+    sel=sel===b.getAttribute("data-a")?null:b.getAttribute("data-a");hist=[];fb.hidden=!sel;
+    if(sel){magStop();Geiger.start();if(devs[sel])seguir(devs[sel])}else Geiger.set(0);renderBle()});
+  $("r_fstop").addEventListener("click",function(){sel=null;fb.hidden=true;Geiger.set(0);renderBle()});
+  function bleUI(on){bleOn=on;bleB.textContent=on?"Detener búsqueda":"Buscar dispositivos";clearInterval(rT);if(on)rT=setInterval(renderBle,700);renderBle()}
+  function bleStop(){if(!bleOn&&!waiting)return;waiting=false;NB.stopBle();sel=null;fb.hidden=true;Geiger.stop();bleUI(false)}
+  bleB.addEventListener("click",function(){
+    if(bleOn){bleStop();say("");return}
+    var r=NB.startBle();
+    if(r==="noperm"){waiting=true;say("Concede el permiso de dispositivos cercanos y ubicación; empezará solo.");return}
+    if(r==="off"){say("Activa el Bluetooth del móvil y vuelve a pulsar.","err");return}
+    if(r!=="ok"){say("No se pudo iniciar el escaneo ("+r+").","err");return}
+    say("");bleUI(true)});
+  window.__onNat=function(m){
+    if(m.k==="perm"&&m.what==="ble"){if(m.ok&&waiting){waiting=false;say("");bleUI(true)}else if(!m.ok){waiting=false;say("Sin permiso para escanear Bluetooth.","err")}}
+    if(m.k==="bt"&&!m.on)say("El Bluetooth está apagado.","err");
+    if(m.k==="ble")say("El escaneo Bluetooth falló (código "+m.err+").","err")};
+  $("r_snd").addEventListener("change",function(){Geiger.opt($("r_snd").checked,$("r_vib").checked)});
+  $("r_vib").addEventListener("change",function(){Geiger.opt($("r_snd").checked,$("r_vib").checked)});
+  /* ---- Wi-Fi ---- */
+  function chan(f){return f<2500?(f===2484?14:Math.round((f-2407)/5)):f<5925?Math.round((f-5000)/5):Math.round((f-5950)/5)}
+  function band(f){return f<2500?"2,4 GHz":f<5925?"5 GHz":"6 GHz"}
+  function seg(c){return/SAE|WPA3/.test(c)?"WPA3":/WPA2|RSN/.test(c)?"WPA2":/WPA/.test(c)?"WPA":/WEP/.test(c)?"WEP":"Abierta"}
+  window.onWifi=function(l){wifi=l||[];renderWifi()};
+  function renderWifi(){
+    var l=wifi.slice().sort(function(a,b){return b.l-a.l}),best=null,bc=1e9,c,k,s;
+    [1,6,11].forEach(function(ch){s=0;l.forEach(function(w){if(w.f<2500&&Math.abs(chan(w.f)-ch)<=2)s+=Math.max(0,w.l+100)});if(s<bc){bc=s;best=ch}});
+    $("r_wifi").innerHTML=(l.length?'<p class="hint">'+l.length+' redes · canal 2,4 GHz menos saturado: '+best+'</p>':'<p class="hint">Aún no hay resultados.</p>')+
+      l.slice(0,40).map(function(w){return'<div class="pt"><div class="pi"><b>'+esc(w.s||"(red oculta)")+'</b><small>'+esc(w.b)+' · canal '+chan(w.f)+' ('+band(w.f)+') · '+seg(w.c)+' · '+w.l+' dBm</small></div></div>'}).join("")}
+  function wifiScan(){var r=NB.wifiScan();
+    if(r==="noperm")say("Concede el permiso de ubicación para ver las redes.","err");
+    else if(r==="off")say("El Wi-Fi está apagado.","err");else if(r!=="ok")say("No se pudo escanear el Wi-Fi ("+r+").","err");
+    else say("Escaneando… Android limita los escaneos (unos 4 cada 2 min).")}
+  $("r_wifib").addEventListener("click",function(){wifiScan();if(!wT)wT=setInterval(wifiScan,30000)});
+  /* ---- Campo magnético ---- */
+  function magStop(){if(!magOn)return;magOn=false;window.__magOn=false;NB.stopSensor(2);Geiger.stop();$("r_magb").textContent="Iniciar detector";$("r_magv").textContent="";$("r_mbar").style.width="0"}
+  $("r_magb").addEventListener("click",function(){
+    if(magOn){magStop();return}
+    sel=null;fb.hidden=true;magOn=true;window.__magOn=true;bn=0;bs=0;dev=0;NB.startSensor(2,20);Geiger.start();$("r_magb").textContent="Detener detector";$("r_magv").textContent="Calibrando… no muevas el móvil"});
+  $("r_magr").addEventListener("click",function(){bn=0;bs=0;dev=0;$("r_magv").textContent="Calibrando… no muevas el móvil"});
+  SensBus.on(function(t,v){if(t!==2||!magOn)return;var B=Math.sqrt(v[0]*v[0]+v[1]*v[1]+v[2]*v[2]);
+    if(bn<20){bs+=B;bn++;if(bn===20)base=bs/20;return}
+    dev=dev*0.6+Math.abs(B-base)*0.4;var p=clamp(dev/30,0,1);
+    $("r_magv").textContent=B.toFixed(0)+" µT · cambio "+dev.toFixed(1)+" µT";$("r_mbar").style.width=Math.round(p*100)+"%";Geiger.set(p)});
+  window.__rastreoStop=function(){bleStop();magStop();clearInterval(wT);wT=null;Geiger.stop()};
+  renderBle();renderWifi()}
+/*RASTREO-END*/
+
 /*SENS-START*/
+var TY={1:["Acelerómetro","m/s²"],2:["Campo magnético","µT"],3:["Orientación (obsoleto)","°"],4:["Giroscopio","rad/s"],5:["Luz","lx"],6:["Presión","hPa"],7:["Temperatura (obsoleto)","°C"],8:["Proximidad","cm"],9:["Gravedad","m/s²"],10:["Aceleración lineal","m/s²"],11:["Vector de rotación",""],12:["Humedad","%"],13:["Temperatura ambiente","°C"],14:["Campo magnético sin calibrar","µT"],15:["Rotación de juego",""],16:["Giroscopio sin calibrar","rad/s"],17:["Movimiento significativo",""],18:["Detector de pasos",""],19:["Contador de pasos","pasos"],20:["Rotación geomagnética",""],22:["Detector de inclinación",""],23:["Gesto: despertar",""],24:["Gesto: mirar",""],25:["Gesto: levantar",""],26:["Gesto: muñeca",""],27:["Orientación de pantalla",""],29:["Detector de quietud",""],30:["Detector de movimiento",""],35:["Acelerómetro sin calibrar","m/s²"]};
+var EVT={17:1,22:1,23:1,24:1,25:1,26:1,29:1,30:1};
+/* [qué es, para qué sirve, cómo se usa] */
+var EXPL={
+1:["Mide cuánto aceleras el móvil en 3 ejes, incluida la gravedad: parado y plano marca ≈9,8 m/s² hacia abajo.","Girar la pantalla, detectar sacudidas, caídas y pasos, nivelar y medir vibraciones.","Déjalo plano: Z≈9,8 y X,Y≈0. Inclínalo o agítalo y mira los picos. Rumbo lo usa de respaldo para contar pasos."],
+2:["El magnetómetro mide el campo magnético en µT. La Tierra da unos 25-65 µT.","Es la base de la brújula. También detecta imanes, metal, motores y altavoces, y zonas con interferencias.","Acércalo a un imán o a un altavoz y el valor se dispara. En Rastreo hay un detector que lo convierte en pitidos. Si la brújula falla, aléjate de metales y dibuja un 8 en el aire."],
+3:["Ángulos de giro ya calculados (acimut, cabeceo, alabeo). Android lo da por obsoleto.","Era la forma antigua de hacer una brújula.","Mejor usa el vector de rotación, que es el que usa Rumbo."],
+4:["Mide la velocidad de giro alrededor de 3 ejes (rad/s).","Realidad aumentada, juegos, estabilizar la cámara y medir giros.","Quieto marca ≈0. Gira el móvil despacio y mira el eje que cambia."],
+5:["Mide la luz que le llega, en lux.","Ajustar el brillo solo, hacer de luxómetro y saber si estás en interior o al sol.","Tápalo con un dedo (está arriba, junto a la cámara frontal): ≈0. Interior 100-500 lx; a pleno sol más de 10.000."],
+6:["El barómetro mide la presión del aire en hPa (≈1013 a nivel del mar).","Estimar la altitud, ayudar al GPS en vertical y anticipar el tiempo: una bajada de 3 hPa o más en 3 horas anuncia tormenta.","Sube un piso y verás bajar ≈0,4 hPa. Para ver tendencias déjalo midiendo con la app abierta de vez en cuando; guarda una lectura cada 5 min."],
+8:["Detecta si hay algo a pocos centímetros de la pantalla.","Apagar la pantalla durante las llamadas y evitar toques con la cara.","Acerca la mano: muchos móviles solo marcan «cerca» o «lejos» (0 y 5 cm)."],
+9:["La parte de gravedad aislada: un vector que apunta siempre hacia abajo.","Niveles de burbuja, inclinómetros y saber cómo sostienes el móvil.","Plano: Z≈9,8. Inclínalo y mira cómo se reparte entre los ejes."],
+10:["La aceleración sin gravedad: solo el movimiento.","Detectar empujones, golpes y arranques.","Quieto marca ≈0. Dale un golpe seco o muévelo rápido."],
+11:["La orientación absoluta del móvil, mezclando acelerómetro, giroscopio y magnetómetro.","Es lo que da el rumbo estable de la brújula de Rumbo, también con el móvil inclinado.","Gira el móvil; para ver la brújula completa usa la pestaña Volver."],
+12:["Mide la humedad relativa del aire (%). Pocos móviles lo traen.","Saber si hace bochorno o si el ambiente está seco.","Respira cerca del sensor y verás subir la humedad."],
+13:["Mide la temperatura del aire (°C). Pocos móviles lo traen.","Termómetro ambiental.","Déjalo un rato fuera del bolsillo: el calor del móvil puede falsearlo."],
+14:["Como el campo magnético, pero sin la corrección automática del propio móvil.","Análisis y calibraciones propias.","Compáralo con el magnético normal cerca de un imán."],
+15:["Orientación relativa sin magnetómetro: no apunta al norte, pero no la afectan los imanes.","Juegos y realidad virtual, donde importa el giro y no el norte.","Gira el móvil: responde suave y sin saltos."],
+16:["Como el giroscopio, sin corregir el desvío automáticamente.","Calibraciones propias.","Déjalo quieto un minuto y verás cómo se desvía poco a poco."],
+17:["Sensor de evento: avisa una sola vez cuando empiezas a andar o a moverte de verdad.","Despertar funciones cuando te mueves, ahorrando batería.","Puede no mostrar valores continuos; solo salta al detectar el movimiento."],
+18:["Avisa en cada paso, por hardware y gastando muy poco.","Contar pasos y cadencia.","Camina con el móvil en la mano: cada paso es un aviso. Rumbo lo usa en Sendero."],
+19:["Cuenta los pasos acumulados desde que se encendió el móvil.","Podómetro de todo el día.","Muestra un total que solo sube al caminar."],
+20:["Orientación con solo acelerómetro y magnetómetro, sin giroscopio.","Brújula con menos batería, aunque menos suave.","Gíralo y compáralo con el vector de rotación."],
+22:["Sensor de evento: salta cuando cambia mucho la inclinación del móvil.","Despertar la pantalla al cogerlo.","Levántalo de la mesa."],
+23:["Sensor de evento de gesto para encender la pantalla.","Activar funciones sin tocar el móvil.","Haz el gesto que el fabricante indique."],
+24:["Sensor de evento de gesto al mirar el móvil.","Mostrar notificaciones al mirarlo.","Levántalo hacia la cara."],
+25:["Sensor de evento: salta al recoger el móvil.","Despertar la pantalla al cogerlo.","Recógelo de una mesa."],
+26:["Sensor de evento pensado para relojes: giro de muñeca.","Encender la pantalla al girar la muñeca.","En un móvil casi nunca hace nada."],
+27:["Dice si el móvil está en vertical u horizontal (0, 1, 2, 3).","Girar la pantalla.","Gira el móvil y mira el valor."],
+29:["Sensor de evento: avisa cuando llevas un rato sin moverte.","Ahorrar batería cuando el móvil está quieto.","Déjalo en la mesa unos segundos."],
+30:["Sensor de evento: avisa cuando se mueve el móvil.","Alarmas de movimiento y ahorro de batería.","Déjalo en la mesa y muévelo."],
+35:["Como el acelerómetro, sin corregir automáticamente el sesgo.","Calibraciones propias.","Plano y quieto: Z≈9,8."]};
+function explOf(t){return EXPL[t]||["Sensor propio del fabricante (tipo "+t+"). No es estándar de Android.","Suele servir para funciones internas del móvil: gestos, pantalla, cámara o salud.","Puedes verlo en vivo, pero sus valores no están documentados."]}
+function explHTML(t){var e=explOf(t);return'<p><b>Qué es.</b> '+esc(e[0])+'</p><p><b>Para qué sirve.</b> '+esc(e[1])+'</p><p><b>Cómo se usa.</b> '+esc(e[2])+'</p>'+(EVT[t]?'<p><b>Ojo.</b> Es un sensor de evento: solo avisa cuando ocurre algo.</p>':"")}
 function initSensores(){
-  var TY={1:["Acelerómetro","m/s²"],2:["Campo magnético","µT"],3:["Orientación","°"],4:["Giroscopio","rad/s"],5:["Luz","lx"],6:["Presión","hPa"],8:["Proximidad","cm"],9:["Gravedad","m/s²"],10:["Aceleración lineal","m/s²"],11:["Vector de rotación",""],12:["Humedad","%"],13:["Temperatura","°C"],15:["Rotación (juego)",""],18:["Detector de pasos",""],19:["Contador de pasos","pasos"],20:["Rotación geomagnética",""],34:["Detección de movimiento",""]};
-  function lab(t){return TY[t]?TY[t][0]:"Tipo "+t}
-  var info=$("x_info"),quick=$("x_quick"),listEl=$("x_list"),live=$("x_live"),cur=null,sensors=[],lastP=null,baro=Store.get("baro",[]),lastB=0,data={};
-  if(!NB){info.textContent="Esta pestaña solo funciona dentro de la app nativa (APK de Rumbo): el navegador no da acceso al barómetro, la luz, el NFC ni los infrarrojos.";return}
+  function lab(t){return TY[t]?TY[t][0]:"Sensor del fabricante ("+t+")"}
+  var info=$("x_info"),quick=$("x_quick"),listEl=$("x_list"),live=$("x_live"),cur=null,sensors=[],baro=Store.get("baro",[]),lastB=0;
+  if(!NB){info.textContent="Esta pestaña solo funciona dentro de la app nativa (APK de Rumbo): el navegador no da acceso al barómetro, la luz, el NFC ni los infrarrojos.";$("x_ir").hidden=true;$("x_nfccard").hidden=true;return}
   var inf={};try{inf=JSON.parse(NB.info())}catch(e){}
   sensors=inf.sensors||[];
   info.textContent=(inf.model||"Móvil")+" · Android API "+(inf.sdk||"?")+" · "+sensors.length+" sensores";
@@ -319,40 +507,71 @@ function initSensores(){
     if(t===6){var tr=baroTrend(baro,Date.now()),s="Altitud aproximada "+Math.round(pAlt(v[0]))+" m (solo orientativa: el tiempo también mueve la presión). ";
       if(tr==null)return s+"Tendencia: recogiendo datos (hace falta ~1 h con la app abierta de vez en cuando).";
       return s+"Tendencia: "+(tr<=-4?"bajada rápida, posible tormenta":tr<=-1.6?"bajando, empeora":tr>=1.6?"subiendo, mejora":"estable")+" ("+(tr>0?"+":"")+tr.toFixed(1)+" hPa/3 h)"}
-    if(t===2){var m=Math.hypot(v[0],v[1],v[2]);return"Intensidad "+m.toFixed(0)+" µT. "+(m>70||m<20?"Zona magnética perturbada: la brújula no será fiable aquí.":"Normal (la Tierra da ~25-65 µT).")}
+    if(t===2){var m=Math.sqrt(v[0]*v[0]+v[1]*v[1]+v[2]*v[2]);return"Intensidad "+m.toFixed(0)+" µT. "+(m>70||m<20?"Zona magnética perturbada: la brújula no será fiable aquí.":"Normal (la Tierra da ~25-65 µT).")}
     if(t===5)return v[0]<10?"Oscuridad":v[0]<500?"Luz de interior":v[0]<10000?"Luz fuerte / nublado":"Sol directo";
     if(t===8)return v[0]<3?"Algo cerca":"Despejado";
     return""}
   function fmtV(t,v){var u=TY[t]?TY[t][1]:"";return v.slice(0,3).map(function(x){return x.toFixed(2)}).join("  ")+(u?" "+u:"")}
-  function pressure(v){lastP=v[0];var now=Date.now();
-    if(now-lastB>300000){lastB=now;baro.push({t:now,p:v[0]});baro=baro.filter(function(s){return now-s.t<4*3600e3});Store.set("baro",baro)}}
   SensBus.on(function(t,v){
-    if(t===6)pressure(v);
-    data[t]=v;
+    if(t===6){var now=Date.now();if(now-lastB>300000){lastB=now;baro.push({t:now,p:v[0]});baro=baro.filter(function(s){return now-s.t<4*3600e3});Store.set("baro",baro)}}
     if(cur===t){$("x_lv").textContent=fmtV(t,v);$("x_ld").textContent=desc(t,v)}
     if(t===6&&$("x_q6"))$("x_q6").textContent=v[0].toFixed(1)+" hPa · "+desc(6,v)});
-  var q="";
-  if(has(6))q+='<div class="card"><b>Barómetro</b><div id="x_q6" class="hint">midiendo…</div></div>';
-  q+='<div class="card"><b>Infrarrojos</b><div class="hint">'+(inf.ir?"Este móvil tiene emisor de infrarrojos (se podrá usar de mando a distancia).":"Este móvil no tiene emisor de infrarrojos.")+'</div></div>';
-  quick.innerHTML=q;
-  if(has(6))NB.startSensor(6,1);
-  listEl.innerHTML=sensors.map(function(s,i){return'<div class="pt"><div class="pi"><b>'+esc(s.name)+'</b><small>'+esc(lab(s.type))+' · '+esc(s.vendor||"")+' · alcance '+(+s.max).toFixed(1)+' · '+(+s.power).toFixed(2)+' mA</small></div><div class="pb"><button data-i="'+i+'">Ver</button></div></div>'}).join("");
-  function cerrar(){if(cur!=null){NB.stopSensor(cur);if(cur===6)NB.startSensor(6,1);cur=null}live.hidden=true}
-  listEl.addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;var s=sensors[+b.getAttribute("data-i")];
-    cerrar();cur=s.type;$("x_ln").textContent=s.name+" · "+lab(s.type);$("x_lv").textContent="esperando datos…";$("x_ld").textContent="";live.hidden=false;NB.startSensor(s.type,10);live.scrollIntoView({block:"nearest"})});
+  if(has(6)){quick.innerHTML='<div class="card"><b>Barómetro</b><div id="x_q6" class="hint">midiendo…</div><details><summary>¿Qué es y cómo se usa?</summary><div class="hint">'+explHTML(6)+'</div></details></div>';NB.startSensor(6,1)}
+  listEl.innerHTML=sensors.map(function(s,i){return'<div class="pt"><div class="pi"><b>'+esc(s.name)+'</b><small>'+esc(lab(s.type))+' · '+esc(s.vendor||"")+' · alcance '+(+s.max).toFixed(1)+' · '+(+s.power).toFixed(2)+' mA</small><div class="ex hint" id="ex'+i+'" hidden>'+explHTML(s.type)+'</div></div><div class="pb"><button data-a="q" data-i="'+i+'">Qué es</button><button data-a="v" data-i="'+i+'">Ver</button></div></div>'}).join("");
+  function cerrar(){if(cur!=null){if(!(cur===2&&window.__magOn))NB.stopSensor(cur);if(cur===6)NB.startSensor(6,1);cur=null}live.hidden=true}
+  listEl.addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;var i=+b.getAttribute("data-i"),s=sensors[i];
+    if(b.getAttribute("data-a")==="q"){var ex=$("ex"+i);ex.hidden=!ex.hidden;return}
+    cerrar();cur=s.type;$("x_ln").textContent=s.name+" · "+lab(s.type);$("x_lv").textContent=EVT[s.type]?"sensor de evento: salta cuando ocurre algo":"esperando datos…";$("x_ld").textContent="";
+    $("x_ex").innerHTML=explHTML(s.type);live.hidden=false;NB.startSensor(s.type,10);live.scrollIntoView({block:"nearest"})});
   $("x_stop").addEventListener("click",cerrar);
+  /* NFC */
   var nf=inf.nfc,nb=$("x_nfcb"),reading=false;
-  $("x_nfc").textContent=nf===2?"NFC activado. Pulsa el botón y acerca una etiqueta o tarjeta.":nf===1?"NFC desactivado: actívalo en Ajustes del móvil.":"Este móvil no tiene NFC.";
+  $("x_nfc").textContent=nf===2?"NFC activado. Pulsa el botón y acerca una etiqueta o tarjeta a la parte trasera.":nf===1?"NFC desactivado: actívalo en Ajustes del móvil.":"Este móvil no tiene NFC.";
+  $("x_nfcex").innerHTML='<p><b>Qué es.</b> Comunicación a 1-4 cm: lee etiquetas y tarjetas sin batería.</p><p><b>Para qué sirve.</b> Abrir enlaces, guardar un texto en una pegatina, automatizar cosas con etiquetas y leer el ID de tarjetas (no copia las cifradas).</p><p><b>Cómo se usa.</b> Pulsa «Leer» y acerca la etiqueta a la zona de la cámara trasera. Verás su ID y el texto o enlace que lleve.</p>';
   nb.disabled=nf!==2;
   nb.addEventListener("click",function(){reading=!reading;nb.textContent=reading?"Dejar de leer NFC":"Leer etiqueta NFC";if(reading){NB.nfcStart();$("x_tag").textContent="Acerca una etiqueta…"}else NB.nfcStop()});
   window.onNfc=function(o){$("x_tag").textContent="ID "+o.uid+(o.tech?" · "+o.tech:"")+(o.text?"\n"+o.text:"\n(sin texto NDEF)");if(navigator.vibrate)navigator.vibrate(80)};
-  window.__sensCerrar=cerrar}
+  window.__sensCerrar=cerrar;
+  initIr()}
+/* ---- Infrarrojos ---- */
+function initIr(){
+  var st=$("ir_st"),msg=$("ir_msg"),pre=$("ir_pre"),pro=$("ir_proto"),info={};
+  try{info=JSON.parse(NB.irInfo())}catch(e){}
+  $("ir_ex").innerHTML='<p><b>Qué es.</b> Un LED infrarrojo que lanza pulsos que no se ven, como el mando de una tele.</p><p><b>Para qué sirve.</b> Controlar televisores, aires, ventiladores o proyectores cuyo código conozcas. Solo emite: no puede leer el código de tu mando ni detectar aparatos.</p><p><b>Cómo se usa.</b> Apunta el borde superior del móvil al aparato, a menos de 5-8 m y sin nada por medio. Para comprobar que emite, míralo con la cámara de otro móvil: verás un punto morado. Los códigos de ejemplo son los de encendido/apagado de LG, Samsung y Sony; si tu aparato es de otra marca, pega su código Pronto o crudo.</p>';
+  if(!info.has){st.textContent="Este móvil no tiene emisor de infrarrojos.";$("ir_ui").hidden=true;return}
+  var rg=(info.ranges||[]).map(function(r){return Math.round(r[0]/1000)+"-"+Math.round(r[1]/1000)+" kHz"}).join(", ");
+  st.textContent="Emisor de infrarrojos disponible"+(rg?" · portadora "+rg:"");
+  pre.innerHTML='<option value="">Elegir un ejemplo…</option>'+Object.keys(IR_PRE).map(function(k){return'<option>'+esc(k)+'</option>'}).join("");
+  function ui(){var p=pro.value;$("ir_ac").hidden=!(p==="nec"||p==="samsung"||p==="sony");$("ir_tx").hidden=!(p==="pronto"||p==="raw");$("ir_fw").hidden=p!=="raw"}
+  pro.addEventListener("change",ui);
+  pre.addEventListener("change",function(){var e=IR_PRE[pre.value];if(!e)return;pro.value=e.p;$("ir_a").value=e.a;$("ir_c").value=e.c;ui()});
+  function say(s,t){msg.textContent=s;msg.className="msg"+(t?" "+t:"")}
+  function build(p,a,c){
+    if(p==="nec")return irNEC(a,c);if(p==="samsung")return irSamsung(a,c);if(p==="sony")return irSony(c,a);return null}
+  function current(){var p=pro.value,r;
+    if(p==="pronto"){r=irPronto($("ir_txt").value);if(!r)say("Código Pronto no válido (empieza por 0000 y tiene que cuadrar la longitud)","err");return r}
+    if(p==="raw"){r=irRaw(+$("ir_f").value,$("ir_txt").value);if(!r)say("Código crudo no válido: frecuencia 15000-60000 Hz y tiempos en µs","err");return r}
+    var a=parseInt($("ir_a").value,16),c=parseInt($("ir_c").value,16);
+    if(isNaN(a)||isNaN(c)){say("Escribe dirección y comando en hexadecimal (ej. 04 y 08)","err");return null}
+    return build(p,a,c)}
+  function send(r,times,done){
+    if(!r)return;var n=0;(function go(){var res=NB.irSend(r.freq,r.pattern.join(","));
+      if(res!=="ok"){say(res==="freq"?"Frecuencia fuera del rango del emisor":res==="no"?"Este móvil no tiene emisor IR":"El emisor rechazó la señal ("+res+")","err");return}
+      if(++n<times)setTimeout(go,110);else if(done)done();else say("Enviado"+(times>1?" ×"+times:""),"ok")})()}
+  $("ir_send").addEventListener("click",function(){send(current(),1)});
+  $("ir_send3").addEventListener("click",function(){send(current(),3)});
+  $("ir_all").addEventListener("click",function(){var ks=Object.keys(IR_PRE),i=0;
+    (function next(){if(i>=ks.length){say("Terminado. Si tu aparato no reaccionó, no es de esas marcas.","ok");return}
+      var e=IR_PRE[ks[i]];say("Probando "+ks[i]+"…");send(build(e.p,parseInt(e.a,16),parseInt(e.c,16)),1,function(){i++;setTimeout(next,1200)})})()});
+  ui()}
 /*SENS-END*/
 
 (function(){
-  initVolver();initSendero();initSensores();Loc.start();Head.start();if(NB)NB.keepAwake(true);
-  function tab(id){["volver","sendero","sens"].forEach(function(k){$("p_"+k).hidden=k!==id;$("t_"+k).setAttribute("aria-selected",k===id?"true":"false")});
+  initVolver();initSendero();initRastreo();initSensores();Loc.start();Head.start();if(NB)NB.keepAwake(true);
+  var T=["volver","sendero","rastreo","sens"];
+  function tab(id){T.forEach(function(k){$("p_"+k).hidden=k!==id;$("t_"+k).setAttribute("aria-selected",k===id?"true":"false")});
+    if(id!=="rastreo"&&window.__rastreoStop)window.__rastreoStop();
     if(id!=="sens"&&window.__sensCerrar)window.__sensCerrar();if(NB)NB.keepAwake(id!=="sens")}
-  ["volver","sendero","sens"].forEach(function(k){$("t_"+k).addEventListener("click",function(){tab(k)})});
+  T.forEach(function(k){$("t_"+k).addEventListener("click",function(){tab(k)})});
 })();
 </script></body></html>
