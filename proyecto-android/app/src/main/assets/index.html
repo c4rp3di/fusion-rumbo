@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark"><title>Rumbo</title>
+<style>
+:root{--bg:#eef2f5;--ink:#0e1b2b;--mute:#58677a;--line:#cdd6df;--card:#fff;--acc:#0b6b8a;--accink:#fff;--ok:#1b7f4b;--err:#c0392b}
+@media (prefers-color-scheme:dark){:root{--bg:#0e1b2b;--ink:#e8eef4;--mute:#9db0c3;--line:#2b3d52;--card:#16273b;--acc:#52c1e0;--accink:#06202b;--ok:#6fd49a;--err:#ff8a7a}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:480px;margin:0 auto;padding:max(14px,env(safe-area-inset-top)) 14px max(24px,env(safe-area-inset-bottom))}
+h1{font-size:1.5rem;margin:6px 0 12px;letter-spacing:-.01em}
+label{display:block;font-weight:600;margin-bottom:6px}
+textarea,input,select{width:100%;font:inherit;color:var(--ink);background:var(--card);border:1.5px solid var(--line);border-radius:12px;padding:12px}
+textarea{min-height:84px;resize:vertical}input,select{min-height:48px;padding:0 12px}
+:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+button{font:inherit;font-weight:600;min-height:46px;border-radius:12px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);padding:0 12px;flex:1;cursor:pointer}
+button.main{background:var(--acc);border-color:var(--acc);color:var(--accink)}
+button:active{transform:scale(.98)}button:disabled{opacity:.5}
+.card{background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:12px;margin:0 0 12px}
+.center{text-align:center}
+.row{display:flex;gap:10px;margin:0 0 10px}
+.hint{color:var(--mute);font-size:.9rem;margin:6px 0 0;word-break:break-word}
+.msg{min-height:1.3em;margin:4px 2px 8px;color:var(--mute);font-size:.92rem}.msg.ok{color:var(--ok);font-weight:600}.msg.err{color:var(--err);font-weight:600}
+.tabs{display:flex;gap:8px;margin:0 0 12px}.tabs button{min-height:42px}
+.tabs button[aria-selected=true]{background:var(--acc);border-color:var(--acc);color:var(--accink)}
+.dial{width:min(62vw,250px);height:auto;color:var(--ink);display:block;margin:0 auto}
+.big{font-size:2.4rem;font-weight:700;letter-spacing:-.02em;margin-top:2px}
+.pt{display:flex;gap:8px;align-items:center;background:var(--card);border:1.5px solid var(--line);border-radius:12px;padding:10px;margin:0 0 8px}
+.pt.sel{border-color:var(--acc);box-shadow:0 0 0 2px var(--acc) inset}
+.pi{flex:1;min-width:0}.pi b{display:block;overflow-wrap:anywhere}.pi small{color:var(--mute);overflow-wrap:anywhere}
+.pb{display:flex;gap:6px}.pb button{flex:none;min-height:40px;padding:0 10px;font-size:.9rem}
+.mor{font:1.05rem/1.5 ui-monospace,Menlo,Consolas,monospace;word-break:break-all}
+.txt{white-space:pre-wrap;word-break:break-word;margin-top:6px;-webkit-user-select:text;user-select:text}
+button.on{opacity:.85}
+#dim{position:fixed;inset:0;z-index:9;background:#000;color:#333;display:flex;align-items:center;justify-content:center;font-size:.9rem}
+[hidden]{display:none!important}
+</style></head><body><main>
+<h1>Rumbo</h1>
+<div class="tabs" role="tablist"><button id="t_volver" type="button" role="tab" aria-selected="true">Volver</button><button id="t_sendero" type="button" role="tab" aria-selected="false">Sendero</button><button id="t_sens" type="button" role="tab" aria-selected="false">Sensores</button></div>
+<section id="p_volver">
+  <div id="v_st" class="msg"></div>
+  <div class="card center"><div id="v_dial"></div><div id="v_dist" class="big">—</div><div id="v_sub" class="hint"></div></div>
+  <div class="row"><input id="v_name" placeholder="Nombre del punto (opcional)" autocomplete="off"></div>
+  <div class="row"><button id="v_save" class="main" type="button">Guardar mi posición</button><button id="v_addb" type="button">Añadir coordenadas</button></div>
+  <div id="v_msg" class="msg" role="status" aria-live="polite"></div>
+  <div id="v_add" class="card" hidden><textarea id="v_txt" placeholder="40.4168, -3.7038   (o pega una copia de seguridad)"></textarea>
+    <div class="row" style="margin:10px 0 0"><button id="v_addok" class="main" type="button">Añadir</button><button id="v_bak" type="button">Copiar copia de seguridad</button></div></div>
+  <div id="v_list"></div>
+</section>
+<section id="p_sendero" hidden>
+  <div id="s_st" class="msg"></div>
+  <div class="card center"><div id="s_dial"></div><div id="s_dist" class="big">—</div><div id="s_sub" class="hint"></div></div>
+  <div class="row"><button id="s_rec" class="main" type="button">Empezar a marcar camino</button><button id="s_back" type="button">Volver al inicio</button></div>
+  <div class="row"><button id="s_dim" type="button">Pantalla oscura</button><button id="s_reset" type="button">Reiniciar</button></div>
+  <div id="s_msg" class="msg" role="status" aria-live="polite"></div>
+  <div class="card"><label for="s_len">Longitud de paso (cm)</label><input id="s_len" type="number" min="40" max="110" inputmode="numeric">
+    <p class="hint">Se afina sola cuando hay GPS y caminas en recto. Lleva el móvil en la mano, de frente: en el bolsillo los pasos y la brújula fallan más.</p></div>
+</section>
+<section id="p_sens" hidden>
+  <div id="x_info" class="msg"></div>
+  <div id="x_quick"></div>
+  <div class="card"><b>NFC</b><div id="x_nfc" class="hint"></div><div class="row" style="margin:10px 0 0"><button id="x_nfcb" type="button">Leer etiqueta NFC</button></div><div id="x_tag" class="txt"></div></div>
+  <div id="x_live" class="card" hidden><b id="x_ln"></b><div id="x_lv" class="mor"></div><div id="x_ld" class="hint"></div><div class="row" style="margin:10px 0 0"><button id="x_stop" type="button">Cerrar</button></div></div>
+  <div id="x_list"></div>
+</section>
+</main>
+<div id="dim" hidden>Toca para encender la pantalla</div>
+<script>
+/*CORE-START*/
+var D2R=Math.PI/180;
+function dist(a,b){var R=6371008.8,dl=(b.lat-a.lat)*D2R,dn=(b.lon-a.lon)*D2R,
+  h=Math.sin(dl/2)*Math.sin(dl/2)+Math.cos(a.lat*D2R)*Math.cos(b.lat*D2R)*Math.sin(dn/2)*Math.sin(dn/2);
+  return 2*R*Math.asin(Math.min(1,Math.sqrt(h)))}
+function bearing(a,b){var y=Math.sin((b.lon-a.lon)*D2R)*Math.cos(b.lat*D2R),
+  x=Math.cos(a.lat*D2R)*Math.sin(b.lat*D2R)-Math.sin(a.lat*D2R)*Math.cos(b.lat*D2R)*Math.cos((b.lon-a.lon)*D2R);
+  return(Math.atan2(y,x)/D2R+360)%360}
+/* rumbo (0-360, desde el norte) a partir de alpha/beta/gamma: usa la parte de arriba del móvil si está plano
+   y la cámara trasera si está en vertical, así no se vuelve loco al inclinarlo */
+function headingFromEuler(alpha,beta,gamma){
+  var a=alpha*D2R,b=beta*D2R,g=gamma*D2R,cA=Math.cos(a),sA=Math.sin(a),cB=Math.cos(b),sB=Math.sin(b),cG=Math.cos(g),sG=Math.sin(g),
+    te=-sA*cB,tn=cA*cB,be=-cA*sG-sA*sB*cG,bn=-sA*sG+cA*sB*cG,e,n;
+  if(Math.hypot(te,tn)>=Math.hypot(be,bn)){e=te;n=tn}else{e=be;n=bn}
+  return(Math.atan2(e,n)/D2R+360)%360}
+function angDiff(a,b){return((a-b+540)%360)-180}
+function smoothAngle(prev,next,k){return prev==null?next:(prev+angDiff(next,prev)*k+360)%360}
+function fmtDist(m){return m<1000?Math.round(m)+" m":(m/1000).toFixed(m<10000?2:1)+" km"}
+function cardinal(b){return["N","NE","E","SE","S","SO","O","NO"][Math.round(b/45)%8]}
+function parseCoords(s){
+  var m=String(s).replace(/[°º]/g,"").match(/(-?\d+(?:[.,]\d+)?)\s*([NSns])?[\s,;]+(-?\d+(?:[.,]\d+)?)\s*([EWOewo])?/);
+  if(!m)return null;
+  var la=parseFloat(m[1].replace(",",".")),lo=parseFloat(m[3].replace(",","."));
+  if(/s/i.test(m[2]||""))la=-Math.abs(la);if(/[wo]/i.test(m[4]||""))lo=-Math.abs(lo);
+  return Math.abs(la)<=90&&Math.abs(lo)<=180?{lat:la,lon:lo}:null}
+/* media ponderada de varias lecturas GPS (pesa más las de menor error) */
+function avgFixes(f){var sw=0,la=0,lo=0;
+  f.forEach(function(p){var a=Math.max(3,p.acc),w=1/(a*a);sw+=w;la+=p.lat*w;lo+=p.lon*w});
+  return{lat:la/sw,lon:lo/sw,acc:Math.max(3,Math.sqrt(1/sw))}}
+/* ---- Sendero: posición en metros locales (este, norte), anclada al GPS cuando lo hay ---- */
+function toLocal(org,f){return{x:(f.lon-org.lon)*111320*Math.cos(org.lat*D2R),y:(f.lat-org.lat)*111320}}
+function Trail(saved){
+  var T={org:null,pts:[],pos:null,gpsT:0,dr:0,len:0.7,rec:false,back:false,ck:null,arrived:false};
+  if(saved){T.org=saved.org||null;T.pts=saved.pts||[];T.len=saved.len||0.7;T.pos=saved.pos||null}
+  function d(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
+  function crumb(){var l=T.pts[T.pts.length-1];if(!l||d(l,T.pos)>=5)T.pts.push({x:T.pos.x,y:T.pos.y})}
+  T.d=d;
+  T.gpsOk=function(now){return now-T.gpsT<6000};
+  T.gps=function(f,now){
+    if(f.acc>25)return;
+    if(!T.org){if(!T.pos)T.pos={x:0,y:0};
+      T.org={lat:f.lat-T.pos.y/111320,lon:f.lon-T.pos.x/(111320*Math.cos(f.lat*D2R))}}
+    var p=toLocal(T.org,f);
+    if(T.ck&&T.ck.steps>=30&&f.acc<=15){var gd=d(T.ck.pos,p);
+      if(gd>=T.ck.steps*0.35){var nl=gd/T.ck.steps;if(nl>0.4&&nl<1.1)T.len=T.len*0.7+nl*0.3}T.ck=null}
+    if(!T.ck)T.ck={pos:p,steps:0};
+    T.pos=p;T.gpsT=now;T.dr=0;if(T.rec&&!T.back)crumb()};
+  T.step=function(h,now){
+    if(!T.rec&&!T.back)return;
+    if(T.gpsOk(now)){if(T.ck)T.ck.steps++;return}
+    if(h==null)return;
+    if(!T.pos){T.pos={x:0,y:0};if(!T.back)crumb()}
+    T.ck=null;
+    T.pos={x:T.pos.x+T.len*Math.sin(h*D2R),y:T.pos.y+T.len*Math.cos(h*D2R)};T.dr+=T.len;
+    if(!T.back)crumb()};
+  /* quita las migas ya alcanzadas y devuelve la siguiente (o null) */
+  T.target=function(){
+    if(!T.pos||!T.pts.length)return null;
+    while(T.pts.length>1&&d(T.pos,T.pts[T.pts.length-1])<6)T.pts.pop();
+    var t=T.pts[T.pts.length-1];T.arrived=T.pts.length===1&&d(T.pos,t)<6;return t};
+  T.bearingTo=function(t){return(Math.atan2(t.x-T.pos.x,t.y-T.pos.y)/D2R+360)%360};
+  T.remaining=function(){var s=0,i;if(!T.pos||!T.pts.length)return 0;s=d(T.pos,T.pts[T.pts.length-1]);
+    for(i=T.pts.length-1;i>0;i--)s+=d(T.pts[i],T.pts[i-1]);return s};
+  T.length=function(){var s=0,i;for(i=1;i<T.pts.length;i++)s+=d(T.pts[i],T.pts[i-1]);return s};
+  T.err=function(){return Math.round(3+0.1*T.dr)};
+  T.save=function(){return{org:T.org,pts:T.pts,len:T.len,pos:T.pos}};
+  T.reset=function(){T.pts=[];T.pos=null;T.org=null;T.dr=0;T.ck=null;T.rec=false;T.back=false;T.arrived=false};
+  return T}
+/* detector de pasos por acelerómetro (por si el móvil no trae detector de pasos) */
+function stepDetector(cb){var lp=9.8,sm=0,armed=true,last=0;
+  return function(x,y,z,t){var m=Math.sqrt(x*x+y*y+z*z);lp+=(m-lp)*0.02;sm=sm*0.5+(m-lp)*0.5;
+    if(armed&&sm>1.2&&t-last>300){last=t;armed=false;cb()}else if(!armed&&sm<0.3)armed=true}}
+/* barómetro: altitud aproximada y tendencia (hPa cada 3 h) */
+function pAlt(p){return 44330*(1-Math.pow(p/1013.25,1/5.255))}
+function baroTrend(s,now){var tg=now-3*3600e3,b=null,i;
+  for(i=0;i<s.length;i++)if(b==null||Math.abs(s[i].t-tg)<Math.abs(b.t-tg))b=s[i];
+  if(!b||now-b.t<3600e3)return null;
+  var c=s[s.length-1],h=(c.t-b.t)/3600e3;return h<=0?null:(c.p-b.p)/h*3}
+/*CORE-END*/
+
+/*PROV-START*/
+var NB=window.Rumbo||null;
+function $(id){return document.getElementById(id)}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+var Store={
+  get:function(k,d){try{var v=NB?NB.load(k):localStorage.getItem("rumbo_"+k);return v?JSON.parse(v):d}catch(e){return d}},
+  set:function(k,v){try{var s=JSON.stringify(v);if(NB)NB.save(k,s);else localStorage.setItem("rumbo_"+k,s);return true}catch(e){return false}}};
+function bus(){var s=[];return{on:function(f){s.push(f)},emit:function(){var a=arguments;s.forEach(function(f){try{f.apply(null,a)}catch(e){}})}}}
+function copiar(txt,el){
+  function dec(ok){if(el){el.textContent=ok?"Copiado":"No se pudo copiar";el.className="msg"+(ok?" ok":" err")}}
+  function viejo(){try{var ta=document.createElement("textarea");ta.value=txt;ta.setAttribute("readonly","");ta.style.cssText="position:fixed;top:0;left:0;opacity:0";
+    document.body.appendChild(ta);ta.focus();ta.select();ta.setSelectionRange(0,txt.length);var r=document.execCommand("copy");document.body.removeChild(ta);dec(r)}catch(e){dec(false)}}
+  if(navigator.clipboard&&window.isSecureContext)navigator.clipboard.writeText(txt).then(function(){dec(true)},viejo);else viejo()}
+var SensBus=bus();window.onSensor=function(t,v,a){SensBus.emit(t,v,a)};
+var Loc=(function(){var b=bus(),o={fix:null,err:0,run:false,on:b.on};
+  o.set=function(f){f.t=Date.now();o.fix=f;o.err=0;b.emit(f)};
+  o.start=function(){if(o.run)return;o.run=true;
+    if(NB){NB.startLoc();return}
+    if(!navigator.geolocation){o.err=-1;return}
+    o.wid=navigator.geolocation.watchPosition(function(p){var c=p.coords;
+      o.set({lat:c.latitude,lon:c.longitude,acc:c.accuracy,alt:c.altitude,speed:isFinite(c.speed)?c.speed:null,bearing:isFinite(c.heading)?c.heading:null})},
+      function(e){o.err=e.code||-1},{enableHighAccuracy:true,maximumAge:0,timeout:30000})};
+  o.stop=function(){if(!o.run)return;o.run=false;if(NB)NB.stopLoc();else if(o.wid!=null)navigator.geolocation.clearWatch(o.wid)};
+  return o})();
+window.onLoc=function(f){Loc.set(f)};
+var Head=(function(){var o={h:null,acc:null,decl:null,run:false};
+  o.set=function(h,acc){o.h=smoothAngle(o.h,h,0.3);o.acc=acc==null?null:acc};
+  function web(e){if(e.alpha==null)return;
+    if(e.type==="deviceorientation"&&e.absolute!==true&&e.webkitCompassHeading==null)return;
+    o.set(e.webkitCompassHeading!=null?e.webkitCompassHeading:headingFromEuler(e.alpha,e.beta,e.gamma),null)}
+  o.start=function(){if(o.run)return;o.run=true;if(NB){NB.startHead();return}
+    window.addEventListener("deviceorientationabsolute",web,true);window.addEventListener("deviceorientation",web,true)};
+  o.stop=function(){if(!o.run)return;o.run=false;if(NB)NB.stopHead();else{window.removeEventListener("deviceorientationabsolute",web,true);window.removeEventListener("deviceorientation",web,true)}};
+  return o})();
+window.onHead=function(m){Head.set(m.h,m.acc);Head.decl=m.d};
+var Steps=(function(){var b=bus(),o={on:b.on,run:false,mode:"",n:0};
+  function fire(){o.n++;b.emit()}
+  var det=stepDetector(fire);
+  function dm(e){var a=e.accelerationIncludingGravity;if(a&&a.x!=null)det(a.x,a.y,a.z,Date.now())}
+  SensBus.on(function(t,v){if(t===1&&o.run&&o.mode==="accel")det(v[0],v[1],v[2],Date.now())});
+  o.start=function(){if(o.run)return;o.run=true;
+    if(NB){var r=NB.startSteps();o.mode=r;if(r==="nosensor"){o.mode="accel";NB.startSensor(1,50)}return}
+    o.mode="accel";window.addEventListener("devicemotion",dm,true)};
+  o.stop=function(){if(!o.run)return;o.run=false;
+    if(NB){NB.stopSteps();if(o.mode==="accel")NB.stopSensor(1)}else window.removeEventListener("devicemotion",dm,true)};
+  o.fire=fire;return o})();
+window.onStep=function(){Steps.fire()};
+window.onNative=function(m){
+  if(m.k==="gps")Loc.err=m.on?0:2;
+  if(m.k==="perm"){if(m.what==="loc"&&!m.ok)Loc.err=1;
+    if(m.what==="steps"){if(m.ok)Steps.mode="ok";else{Steps.mode="accel";Steps.denied=true;if(NB)NB.startSensor(1,50)}}}};
+function dialSVG(){return'<svg viewBox="0 0 200 200" class="dial" aria-hidden="true"><g class="ring"><circle cx="100" cy="100" r="92" fill="none" stroke="currentColor" stroke-opacity=".25" stroke-width="3"/><text x="100" y="27" text-anchor="middle" font-size="18" font-weight="700" fill="currentColor" fill-opacity=".7">N</text></g><g class="arr"><path d="M100 36 L130 116 L100 100 L70 116 Z" fill="var(--acc)"/></g></svg>'}
+function setDial(root,arr,ring){root.querySelector(".arr").setAttribute("transform","rotate("+arr.toFixed(1)+" 100 100)");root.querySelector(".ring").setAttribute("transform","rotate("+ring.toFixed(1)+" 100 100)")}
+function headTxt(){if(Head.h==null)return"sin brújula";return Head.acc!=null&&Head.acc<2?"brújula imprecisa: mueve el móvil dibujando un 8":"brújula OK"}
+function gpsTxt(){var f=Loc.fix;if(!f)return Loc.err===1?"Sin permiso de ubicación":Loc.err===2?"Activa la ubicación del móvil":Loc.err?"GPS no disponible":"Buscando GPS…";
+  var age=(Date.now()-f.t)/1000;return"GPS ±"+Math.round(f.acc)+" m"+(age>8?" (sin señal hace "+Math.round(age)+" s)":"")}
+/*PROV-END*/
+
+/*VOLVER-START*/
+function initVolver(){
+  var st=$("v_st"),distEl=$("v_dist"),sub=$("v_sub"),msg=$("v_msg"),list=$("v_list"),dial=$("v_dial"),saveB=$("v_save"),
+      pts=Store.get("pts",[]),sel=Store.get("sel",null),saving=null,arrivedFor=null,mt=null;
+  dial.innerHTML=dialSVG();
+  function say(s,t){msg.textContent=s||"";msg.className="msg"+(t?" "+t:"");clearTimeout(mt);if(t==="ok")mt=setTimeout(function(){msg.textContent="";msg.className="msg"},2500)}
+  function persist(){if(!Store.set("pts",pts)||!Store.set("sel",sel))say("Aquí no se pueden guardar los puntos: usa «Copiar copia de seguridad».","err")}
+  function byId(id){for(var i=0;i<pts.length;i++)if(pts[i].id===id)return pts[i];return null}
+  function nid(){return Date.now().toString(36)+Math.floor(Math.random()*1296).toString(36)}
+  function nombre(){var n=$("v_name").value.trim();$("v_name").value="";return n||"Punto "+(pts.length+1)}
+  function render(){
+    list.innerHTML=pts.length?pts.map(function(p){return'<div class="pt'+(p.id===sel?" sel":"")+'"><div class="pi"><b>'+esc(p.name)+'</b><small>'+p.lat.toFixed(5)+', '+p.lon.toFixed(5)+' · ±'+Math.round(p.acc||0)+' m · <span data-d="'+p.id+'"></span></small></div><div class="pb"><button data-a="go" data-id="'+p.id+'">Ir</button><button data-a="cp" data-id="'+p.id+'">Copiar</button><button data-a="del" data-id="'+p.id+'">Borrar</button></div></div>'}).join(""):'<p class="hint">Aún no hay puntos. Guarda tu posición para poder volver a ella.</p>'}
+  list.addEventListener("click",function(e){
+    var b=e.target.closest("button");if(!b)return;var id=b.getAttribute("data-id"),a=b.getAttribute("data-a"),p=byId(id);if(!p)return;
+    if(a==="go"){sel=id;arrivedFor=null;persist();render()}
+    else if(a==="cp")copiar(p.lat.toFixed(6)+", "+p.lon.toFixed(6),msg);
+    else if(a==="del"){if(b.getAttribute("data-c")){pts=pts.filter(function(x){return x.id!==id});if(sel===id)sel=null;persist();render()}
+      else{b.setAttribute("data-c","1");b.textContent="¿Seguro?";setTimeout(function(){b.removeAttribute("data-c");b.textContent="Borrar"},3000)}}});
+  function guardar(){
+    if(saving)return;if(!Loc.fix){say("Aún no hay posición GPS. Sal a cielo abierto y espera unos segundos.","err");return}
+    saving={fixes:[],t0:Date.now(),last:0};saveB.disabled=true;
+    saving.timer=setInterval(function(){
+      var f=Loc.fix,el=(Date.now()-saving.t0)/1000;
+      if(f&&f.t>saving.last){saving.last=f.t;if(f.acc<=60)saving.fixes.push(f)}
+      say("Promediando posición… "+Math.max(0,Math.ceil(10-el))+" s ("+saving.fixes.length+" lecturas)");
+      if(el>=10){clearInterval(saving.timer);saveB.disabled=false;
+        if(!saving.fixes.length){say("Sin lecturas GPS fiables (más de ±60 m). Prueba en un sitio más abierto.","err");saving=null;return}
+        var a=avgFixes(saving.fixes),p={id:nid(),name:nombre(),lat:a.lat,lon:a.lon,acc:a.acc,t:Date.now()};
+        pts.push(p);sel=p.id;arrivedFor=null;persist();render();say("Guardado «"+p.name+"» (±"+Math.round(a.acc)+" m)","ok");saving=null}},400)}
+  saveB.addEventListener("click",guardar);
+  $("v_addb").addEventListener("click",function(){$("v_add").hidden=!$("v_add").hidden});
+  $("v_addok").addEventListener("click",function(){
+    var s=$("v_txt").value.trim(),n=0;if(!s)return;
+    if(s.charAt(0)==="["){try{JSON.parse(s).forEach(function(p){if(p&&isFinite(p.lat)&&isFinite(p.lon)&&!byId(p.id)){pts.push({id:p.id||nid(),name:String(p.name||"Punto").slice(0,40),lat:+p.lat,lon:+p.lon,acc:+p.acc||0,t:p.t||Date.now()});n++}})}catch(e){say("La copia de seguridad no es válida","err");return}}
+    else{var c=parseCoords(s);if(!c){say("No entiendo las coordenadas. Ejemplo: 40.4168, -3.7038","err");return}
+      var p={id:nid(),name:nombre(),lat:c.lat,lon:c.lon,acc:0,t:Date.now()};pts.push(p);sel=p.id;n=1}
+    persist();render();$("v_txt").value="";$("v_add").hidden=true;say("Añadidos: "+n,"ok")});
+  $("v_bak").addEventListener("click",function(){copiar(JSON.stringify(pts),msg)});
+  function tick(){
+    var f=Loc.fix,h=Head.h,tg=byId(sel);
+    st.textContent=gpsTxt()+" · "+headTxt();
+    Array.prototype.forEach.call(list.querySelectorAll("[data-d]"),function(s){var p=byId(s.getAttribute("data-d"));s.textContent=f&&p?fmtDist(dist(f,p)):"—"});
+    if(!tg){distEl.textContent="—";sub.textContent="Elige un punto de la lista o guarda tu posición";setDial(dial,0,h==null?0:-h);return}
+    if(!f){distEl.textContent="…";sub.textContent="Esperando GPS para guiarte a «"+tg.name+"»";setDial(dial,0,h==null?0:-h);return}
+    var d=dist(f,tg),b=bearing(f,tg),hd=h;
+    if(hd==null&&f.speed>1.5&&f.bearing!=null)hd=f.bearing;
+    var llego=d<=Math.max(6,f.acc);
+    distEl.textContent=llego?"¡Llegaste!":fmtDist(d);
+    sub.textContent="«"+tg.name+"» · rumbo "+Math.round(b)+"° "+cardinal(b)+" · margen ±"+Math.round(f.acc+(tg.acc||0))+" m"+(hd==null?" · sin brújula: camina y se guiará por tu movimiento":"");
+    setDial(dial,hd==null?b:b-hd,hd==null?0:-hd);
+    if(llego&&arrivedFor!==sel){arrivedFor=sel;if(navigator.vibrate)navigator.vibrate([200,100,200])}
+    if(!llego&&d>Math.max(6,f.acc)*2)arrivedFor=null}
+  render();setInterval(tick,200);tick()}
+/*VOLVER-END*/
+
+/*SENDERO-START*/
+function initSendero(){
+  var T=Trail(Store.get("trail",null)),dial=$("s_dial"),st=$("s_st"),dEl=$("s_dist"),sub=$("s_sub"),msg=$("s_msg"),recB=$("s_rec"),backB=$("s_back"),
+      lenI=$("s_len"),dim=$("dim"),nSteps=0,arrivedOnce=false,lastSave=0;
+  dial.innerHTML=dialSVG();lenI.value=Math.round(T.len*100);
+  function say(s,t){msg.textContent=s||"";msg.className="msg"+(t?" "+t:"")}
+  function sensores(on){if(on){Loc.start();Head.start();Steps.start();if(NB)NB.keepAwake(true)}else{Steps.stop();if(NB)NB.keepAwake(false)}}
+  Loc.on(function(f){T.gps(f,Date.now())});
+  Steps.on(function(){if(T.rec||T.back){nSteps++;T.step(Head.h,Date.now())}});
+  function botones(){recB.textContent=T.rec&&!T.back?"Marcando camino…":"Empezar a marcar camino";recB.className=T.rec&&!T.back?"main on":"main";
+    backB.textContent=T.back?"Seguir marcando":"Volver al inicio";backB.disabled=!(T.pts.length>0)}
+  recB.addEventListener("click",function(){
+    if(T.rec&&!T.back)return;
+    if(T.back){T.back=false;T.rec=true;botones();return}
+    T.reset();T.rec=true;nSteps=0;arrivedOnce=false;sensores(true);if(Loc.fix)T.gps(Loc.fix,Date.now());
+    say("Camina con el móvil en la mano, de frente. Se anota un punto cada 5 m.");botones()});
+  backB.addEventListener("click",function(){
+    if(T.back){T.back=false;T.rec=true}else{if(!T.pts.length)return;T.back=true;T.rec=false;arrivedOnce=false;sensores(true);say("Sigue la flecha. Al llegar a cada punto pasa al anterior.")}
+    botones()});
+  $("s_reset").addEventListener("click",function(){var b=$("s_reset");
+    if(b.getAttribute("data-c")){T.reset();Store.set("trail",null);nSteps=0;botones();say("Rastro borrado","ok");b.textContent="Reiniciar";b.removeAttribute("data-c")}
+    else{b.setAttribute("data-c","1");b.textContent="¿Seguro?";setTimeout(function(){b.removeAttribute("data-c");b.textContent="Reiniciar"},3000)}});
+  lenI.addEventListener("change",function(){var v=+lenI.value;if(v>=40&&v<=110){T.len=v/100;Store.set("trail",T.save())}});
+  $("s_dim").addEventListener("click",function(){dim.hidden=false;if(NB)NB.dim(true)});
+  dim.addEventListener("click",function(){dim.hidden=true;if(NB)NB.dim(false)});
+  function tick(){
+    var now=Date.now(),h=Head.h;
+    var src=T.gpsOk(now)?gpsTxt():(T.pos?"Estimada con pasos + brújula (deriva ±"+T.err()+" m)":"Sin posición todavía");
+    st.textContent=src+" · "+headTxt()+" · "+nSteps+" pasos · paso "+Math.round(T.len*100)+" cm"+(T.rec||T.back?"":"");
+    if(Steps.run&&Steps.mode==="noperm")say("Concede el permiso de actividad física para contar pasos.","err");
+    if(Steps.denied)say("Sin permiso de actividad física: se usa el acelerómetro para contar pasos (menos preciso).","err");
+    if(T.pos&&T.pts.length){
+      var tg=T.back?T.target():T.pts[0],ref=h;
+      if(T.back&&T.arrived){dEl.textContent="¡Has vuelto!";sub.textContent="Estás en el punto de inicio (±"+T.err()+" m)";setDial(dial,0,h==null?0:-h);
+        if(!arrivedOnce){arrivedOnce=true;if(navigator.vibrate)navigator.vibrate([200,100,200])}}
+      else{var dd=T.back?T.remaining():T.d(T.pos,tg),b=T.bearingTo(tg);
+        dEl.textContent=fmtDist(dd);
+        sub.textContent=(T.back?"Para volver · siguiente punto a "+fmtDist(T.d(T.pos,tg))+" · ":"Inicio en línea recta · ")+T.pts.length+" puntos · recorrido "+fmtDist(T.length());
+        setDial(dial,ref==null?b:b-ref,ref==null?0:-ref)}}
+    else{dEl.textContent="—";sub.textContent="Pulsa «Empezar a marcar camino» donde quieras tener tu punto de inicio";setDial(dial,0,h==null?0:-h)}
+    if((T.rec||T.back)&&now-lastSave>5000){lastSave=now;Store.set("trail",T.save())}
+    botones()}
+  botones();setInterval(tick,250);tick();
+  if(T.pts.length)say("Hay un rastro guardado ("+T.pts.length+" puntos). Puedes volver al inicio o reiniciar.")}
+/*SENDERO-END*/
+
+/*SENS-START*/
+function initSensores(){
+  var TY={1:["Acelerómetro","m/s²"],2:["Campo magnético","µT"],3:["Orientación","°"],4:["Giroscopio","rad/s"],5:["Luz","lx"],6:["Presión","hPa"],8:["Proximidad","cm"],9:["Gravedad","m/s²"],10:["Aceleración lineal","m/s²"],11:["Vector de rotación",""],12:["Humedad","%"],13:["Temperatura","°C"],15:["Rotación (juego)",""],18:["Detector de pasos",""],19:["Contador de pasos","pasos"],20:["Rotación geomagnética",""],34:["Detección de movimiento",""]};
+  function lab(t){return TY[t]?TY[t][0]:"Tipo "+t}
+  var info=$("x_info"),quick=$("x_quick"),listEl=$("x_list"),live=$("x_live"),cur=null,sensors=[],lastP=null,baro=Store.get("baro",[]),lastB=0,data={};
+  if(!NB){info.textContent="Esta pestaña solo funciona dentro de la app nativa (APK de Rumbo): el navegador no da acceso al barómetro, la luz, el NFC ni los infrarrojos.";return}
+  var inf={};try{inf=JSON.parse(NB.info())}catch(e){}
+  sensors=inf.sensors||[];
+  info.textContent=(inf.model||"Móvil")+" · Android API "+(inf.sdk||"?")+" · "+sensors.length+" sensores";
+  function has(t){return sensors.some(function(s){return s.type===t})}
+  function desc(t,v){
+    if(t===6){var tr=baroTrend(baro,Date.now()),s="Altitud aproximada "+Math.round(pAlt(v[0]))+" m (solo orientativa: el tiempo también mueve la presión). ";
+      if(tr==null)return s+"Tendencia: recogiendo datos (hace falta ~1 h con la app abierta de vez en cuando).";
+      return s+"Tendencia: "+(tr<=-4?"bajada rápida, posible tormenta":tr<=-1.6?"bajando, empeora":tr>=1.6?"subiendo, mejora":"estable")+" ("+(tr>0?"+":"")+tr.toFixed(1)+" hPa/3 h)"}
+    if(t===2){var m=Math.hypot(v[0],v[1],v[2]);return"Intensidad "+m.toFixed(0)+" µT. "+(m>70||m<20?"Zona magnética perturbada: la brújula no será fiable aquí.":"Normal (la Tierra da ~25-65 µT).")}
+    if(t===5)return v[0]<10?"Oscuridad":v[0]<500?"Luz de interior":v[0]<10000?"Luz fuerte / nublado":"Sol directo";
+    if(t===8)return v[0]<3?"Algo cerca":"Despejado";
+    return""}
+  function fmtV(t,v){var u=TY[t]?TY[t][1]:"";return v.slice(0,3).map(function(x){return x.toFixed(2)}).join("  ")+(u?" "+u:"")}
+  function pressure(v){lastP=v[0];var now=Date.now();
+    if(now-lastB>300000){lastB=now;baro.push({t:now,p:v[0]});baro=baro.filter(function(s){return now-s.t<4*3600e3});Store.set("baro",baro)}}
+  SensBus.on(function(t,v){
+    if(t===6)pressure(v);
+    data[t]=v;
+    if(cur===t){$("x_lv").textContent=fmtV(t,v);$("x_ld").textContent=desc(t,v)}
+    if(t===6&&$("x_q6"))$("x_q6").textContent=v[0].toFixed(1)+" hPa · "+desc(6,v)});
+  var q="";
+  if(has(6))q+='<div class="card"><b>Barómetro</b><div id="x_q6" class="hint">midiendo…</div></div>';
+  q+='<div class="card"><b>Infrarrojos</b><div class="hint">'+(inf.ir?"Este móvil tiene emisor de infrarrojos (se podrá usar de mando a distancia).":"Este móvil no tiene emisor de infrarrojos.")+'</div></div>';
+  quick.innerHTML=q;
+  if(has(6))NB.startSensor(6,1);
+  listEl.innerHTML=sensors.map(function(s,i){return'<div class="pt"><div class="pi"><b>'+esc(s.name)+'</b><small>'+esc(lab(s.type))+' · '+esc(s.vendor||"")+' · alcance '+(+s.max).toFixed(1)+' · '+(+s.power).toFixed(2)+' mA</small></div><div class="pb"><button data-i="'+i+'">Ver</button></div></div>'}).join("");
+  function cerrar(){if(cur!=null){NB.stopSensor(cur);if(cur===6)NB.startSensor(6,1);cur=null}live.hidden=true}
+  listEl.addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;var s=sensors[+b.getAttribute("data-i")];
+    cerrar();cur=s.type;$("x_ln").textContent=s.name+" · "+lab(s.type);$("x_lv").textContent="esperando datos…";$("x_ld").textContent="";live.hidden=false;NB.startSensor(s.type,10);live.scrollIntoView({block:"nearest"})});
+  $("x_stop").addEventListener("click",cerrar);
+  var nf=inf.nfc,nb=$("x_nfcb"),reading=false;
+  $("x_nfc").textContent=nf===2?"NFC activado. Pulsa el botón y acerca una etiqueta o tarjeta.":nf===1?"NFC desactivado: actívalo en Ajustes del móvil.":"Este móvil no tiene NFC.";
+  nb.disabled=nf!==2;
+  nb.addEventListener("click",function(){reading=!reading;nb.textContent=reading?"Dejar de leer NFC":"Leer etiqueta NFC";if(reading){NB.nfcStart();$("x_tag").textContent="Acerca una etiqueta…"}else NB.nfcStop()});
+  window.onNfc=function(o){$("x_tag").textContent="ID "+o.uid+(o.tech?" · "+o.tech:"")+(o.text?"\n"+o.text:"\n(sin texto NDEF)");if(navigator.vibrate)navigator.vibrate(80)};
+  window.__sensCerrar=cerrar}
+/*SENS-END*/
+
+(function(){
+  initVolver();initSendero();initSensores();Loc.start();Head.start();if(NB)NB.keepAwake(true);
+  function tab(id){["volver","sendero","sens"].forEach(function(k){$("p_"+k).hidden=k!==id;$("t_"+k).setAttribute("aria-selected",k===id?"true":"false")});
+    if(id!=="sens"&&window.__sensCerrar)window.__sensCerrar();if(NB)NB.keepAwake(id!=="sens")}
+  ["volver","sendero","sens"].forEach(function(k){$("t_"+k).addEventListener("click",function(){tab(k)})});
+})();
+</script></body></html>
