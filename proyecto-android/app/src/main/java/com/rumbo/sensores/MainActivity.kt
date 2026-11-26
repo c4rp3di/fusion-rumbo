@@ -47,6 +47,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener,
         const val PERM_LOC = 11
         const val PERM_ACT = 12
         const val PERM_BLE = 13
+        const val PERM_BODY = 14
     }
 
     private lateinit var web: WebView
@@ -96,7 +97,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener,
         if (wantSteps && (Build.VERSION.SDK_INT < 29 || has(Manifest.permission.ACTIVITY_RECOGNITION))) {
             reg(Sensor.TYPE_STEP_DETECTOR, true)
         }
-        for ((t, ms) in streams) reg(t, ms <= 70L)
+        for ((t, ms) in streams) if (!needsBody(t) || has(Manifest.permission.BODY_SENSORS)) reg(t, ms <= 70L)
         if (wantLoc && has(Manifest.permission.ACCESS_FINE_LOCATION)) beginLoc()
         if (wantNfc) enableNfc()
         if (wantBle && blePermsOk()) beginBle()
@@ -117,8 +118,17 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener,
     private fun reg(t: Int, fast: Boolean) {
         val s = sm.getDefaultSensor(t) ?: return
         val rate = if (fast) SensorManager.SENSOR_DELAY_GAME else SensorManager.SENSOR_DELAY_UI
-        sm.registerListener(this, s, rate, main)
+        try {
+            sm.registerListener(this, s, rate, main)
+        } catch (e: SecurityException) {
+            js("onNative", "{\"k\":\"sensor\",\"type\":$t,\"err\":\"perm\"}")
+        } catch (e: Exception) {
+            js("onNative", "{\"k\":\"sensor\",\"type\":$t,\"err\":\"fail\"}")
+        }
     }
+
+    /** Los sensores de pulso (21) y latido (31) exigen el permiso de sensores corporales. */
+    private fun needsBody(t: Int): Boolean = t == 21 || t == 31
 
     private fun needed(t: Int): Boolean =
         (wantHead && (t == Sensor.TYPE_ROTATION_VECTOR || t == Sensor.TYPE_MAGNETIC_FIELD)) ||
@@ -187,6 +197,10 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener,
             val all = grantResults.isNotEmpty() && grantResults.all { it == PackageManager.PERMISSION_GRANTED }
             js("onNative", "{\"k\":\"perm\",\"what\":\"ble\",\"ok\":$all}")
             if (all && wantBle) beginBle()
+        }
+        if (requestCode == PERM_BODY) {
+            js("onNative", "{\"k\":\"perm\",\"what\":\"body\",\"ok\":$ok}")
+            if (ok) for ((t, ms) in streams) if (needsBody(t)) reg(t, ms <= 70L)
         }
         if (requestCode == PERM_ACT) {
             js("onNative", "{\"k\":\"perm\",\"what\":\"steps\",\"ok\":$ok}")
@@ -415,7 +429,11 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener,
             runOnUiThread {
                 streams[type] = 1000L / Math.max(1, hz)
                 lastPush.remove(type)
-                reg(type, hz > 15)
+                if (needsBody(type) && !has(Manifest.permission.BODY_SENSORS)) {
+                    ActivityCompat.requestPermissions(this@MainActivity, arrayOf(Manifest.permission.BODY_SENSORS), PERM_BODY)
+                } else {
+                    reg(type, hz > 15)
+                }
             }
         }
 
