@@ -38,6 +38,15 @@ button.on{opacity:.85}
 details{margin:8px 0}summary{cursor:pointer;font-weight:600;color:var(--acc);min-height:32px}
 details p,.ex p{margin:6px 0}
 .bar{height:14px;border-radius:7px;background:var(--line);overflow:hidden;margin:8px 0}.bar i{display:block;height:100%;width:0;background:var(--acc);transition:width .15s}
+details.card>summary{list-style:none;cursor:pointer;display:flex;gap:8px;align-items:baseline;color:var(--ink);font-size:1rem;min-height:34px}
+details.card>summary::-webkit-details-marker{display:none}
+details.card>summary::after{content:"▾";margin-left:auto;color:var(--mute)}
+details.card[open]>summary::after{content:"▴"}
+details.card>summary .hint{margin:0}
+.rg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0 0 10px}
+.rk{min-height:50px;font-weight:700;touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;padding:0 4px;font-size:.95rem}
+.rk.pw{background:#c0392b;border-color:#c0392b;color:#fff}.rk.okb{background:var(--acc);border-color:var(--acc);color:var(--accink)}
+.rk:disabled{opacity:.3}.rk:active{transform:scale(.95);filter:brightness(1.15)}
 [hidden]{display:none!important}
 </style></head><body><main>
 <h1>Rumbo</h1>
@@ -94,24 +103,29 @@ details p,.ex p{margin:6px 0}
 <section id="p_sens" hidden>
   <div id="x_info" class="msg"></div>
   <div id="x_quick"></div>
-  <div class="card" id="x_ir"><b>Infrarrojos (mando a distancia)</b>
+  <details class="card" id="x_ir"><summary><b>Infrarrojos (mando a distancia)</b><span id="ir_sum" class="hint"></span></summary>
     <div id="ir_st" class="hint"></div>
     <details><summary>¿Qué es y cómo se usa?</summary><div id="ir_ex" class="hint"></div></details>
     <div id="ir_ui">
-      <label for="ir_pre">Ejemplo</label><select id="ir_pre"></select>
-      <label for="ir_proto" style="margin-top:10px">Protocolo</label>
-      <select id="ir_proto"><option value="nec">NEC (LG y muchos más)</option><option value="samsung">Samsung</option><option value="sony">Sony (12 bits)</option><option value="pronto">Código Pronto</option><option value="raw">Crudo (µs)</option></select>
-      <div id="ir_ac" class="two" style="margin-top:10px"><div><label for="ir_a">Dirección (hex)</label><input id="ir_a" autocapitalize="off" placeholder="04"></div><div><label for="ir_c">Comando (hex)</label><input id="ir_c" autocapitalize="off" placeholder="08"></div></div>
-      <div id="ir_tx" hidden style="margin-top:10px"><label for="ir_txt">Código</label><textarea id="ir_txt" placeholder="0000 006D 0022 0000 …"></textarea>
-        <div id="ir_fw" hidden style="margin-top:10px"><label for="ir_f">Frecuencia (Hz)</label><input id="ir_f" value="38000" inputmode="numeric"></div></div>
-      <div class="row" style="margin-top:10px"><button id="ir_send" class="main" type="button">Enviar</button><button id="ir_send3" type="button">Enviar ×3</button></div>
-      <div class="row"><button id="ir_all" type="button">Probar las 3 marcas</button></div>
+      <label for="ir_model" style="margin-top:8px">Mando</label><select id="ir_model"></select>
+      <div id="ir_remote" style="margin-top:12px"></div>
+      <div id="ir_last" class="hint"></div>
+      <details><summary>Códigos avanzados (Pronto, crudo, otros)</summary>
+        <label for="ir_pre" style="margin-top:8px">Ejemplo</label><select id="ir_pre"></select>
+        <label for="ir_proto" style="margin-top:10px">Protocolo</label>
+        <select id="ir_proto"><option value="nec">NEC (LG y muchos más)</option><option value="samsung">Samsung</option><option value="sony">Sony (12 bits)</option><option value="pronto">Código Pronto</option><option value="raw">Crudo (µs)</option></select>
+        <div id="ir_ac" class="two" style="margin-top:10px"><div><label for="ir_a">Dirección (hex)</label><input id="ir_a" autocapitalize="off" placeholder="04"></div><div><label for="ir_c">Comando (hex)</label><input id="ir_c" autocapitalize="off" placeholder="08"></div></div>
+        <div id="ir_tx" hidden style="margin-top:10px"><label for="ir_txt">Código</label><textarea id="ir_txt" placeholder="0000 006D 0022 0000 …"></textarea>
+          <div id="ir_fw" hidden style="margin-top:10px"><label for="ir_f">Frecuencia (Hz)</label><input id="ir_f" value="38000" inputmode="numeric"></div></div>
+        <div class="row" style="margin-top:10px"><button id="ir_send" class="main" type="button">Enviar</button><button id="ir_send3" type="button">Enviar ×3</button></div>
+        <div class="row"><button id="ir_all" type="button">Probar las 3 marcas</button></div>
+      </details>
       <div id="ir_msg" class="msg" role="status" aria-live="polite"></div>
     </div>
-  </div>
-  <div class="card" id="x_nfccard"><b>NFC</b><div id="x_nfc" class="hint"></div>
+  </details>
+  <details class="card" id="x_nfccard"><summary><b>NFC</b><span id="x_nfcs" class="hint"></span></summary><div id="x_nfc" class="hint"></div>
     <details><summary>¿Qué es y cómo se usa?</summary><div id="x_nfcex" class="hint"></div></details>
-    <div class="row" style="margin:10px 0 0"><button id="x_nfcb" type="button">Leer etiqueta NFC</button></div><div id="x_tag" class="txt"></div></div>
+    <div class="row" style="margin:10px 0 0"><button id="x_nfcb" type="button">Leer etiqueta NFC</button></div><div id="x_tag" class="txt"></div></details>
   <div id="x_live" class="card" hidden><b id="x_ln"></b><div id="x_lv" class="mor"></div><div id="x_ld" class="hint"></div><div id="x_ex" class="hint"></div><div class="row" style="margin:10px 0 0"><button id="x_stop" type="button">Cerrar</button></div></div>
   <h2 style="font-size:1.05rem;margin:14px 2px 8px">Todos los sensores del móvil</h2>
   <div id="x_list"></div>
@@ -223,6 +237,18 @@ function irRaw(freq,s){
   if(n.length<2||n.some(function(x){return !x||x>200000})||!(freq>=15000&&freq<=60000))return null;
   return{freq:+freq,pattern:n}}
 var IR_PRE={"Samsung TV · encender/apagar":{p:"samsung",a:"07",c:"02"},"LG TV · encender/apagar":{p:"nec",a:"04",c:"08"},"Sony TV · encender/apagar":{p:"sony",a:"01",c:"15"}};
+/* ---- Mandos virtuales: códigos de los mandos más habituales de cada marca ---- */
+var IR_KEYS={pwr:"⏻",src:"Entrada",mute:"Silencio",vup:"Vol +",vdn:"Vol −",cup:"Canal +",cdn:"Canal −",home:"Inicio",menu:"Menú",back:"Atrás",exit:"Salir",info:"Info",up:"▲",dn:"▼",lf:"◀",rt:"▶",ok:"OK",n0:"0",n1:"1",n2:"2",n3:"3",n4:"4",n5:"5",n6:"6",n7:"7",n8:"8",n9:"9"};
+function rev8(b){var r=0,i;for(i=0;i<8;i++)r|=((b>>i)&1)<<(7-i);return r}
+var IR_REMOTES={
+"Samsung TV":{p:"samsung",k:{pwr:"E0E040BF",src:"E0E0807F",mute:"E0E0F00F",vup:"E0E0E01F",vdn:"E0E0D02F",cup:"E0E048B7",cdn:"E0E008F7",home:"E0E09E61",menu:"E0E058A7",back:"E0E01AE5",exit:"E0E0B44B",info:"E0E0F807",up:"E0E006F9",dn:"E0E08679",lf:"E0E0A659",rt:"E0E046B9",ok:"E0E016E9",n1:"E0E020DF",n2:"E0E0A05F",n3:"E0E0609F",n4:"E0E010EF",n5:"E0E0906F",n6:"E0E050AF",n7:"E0E030CF",n8:"E0E0B04F",n9:"E0E0708F",n0:"E0E08877"}},
+"LG TV":{p:"nec",k:{pwr:"20DF10EF",src:"20DFD02F",mute:"20DF906F",vup:"20DF40BF",vdn:"20DFC03F",cup:"20DF00FF",cdn:"20DF807F",home:"20DF3EC1",menu:"20DFC23D",back:"20DF14EB",exit:"20DFDA25",info:"20DF55AA",up:"20DF02FD",dn:"20DF827D",lf:"20DFE01F",rt:"20DF609F",ok:"20DF22DD",n1:"20DF8877",n2:"20DF48B7",n3:"20DFC837",n4:"20DF28D7",n5:"20DFA857",n6:"20DF6897",n7:"20DFE817",n8:"20DF18E7",n9:"20DF9867",n0:"20DF08F7"}},
+"Sony TV":{p:"sony",k:{pwr:21,src:37,mute:20,vup:18,vdn:19,cup:16,cdn:17,up:116,dn:117,lf:52,rt:51,ok:101,n1:0,n2:1,n3:2,n4:3,n5:4,n6:5,n7:6,n8:7,n9:8,n0:9}}};
+function irKey(model,key){
+  var m=IR_REMOTES[model],v=m&&m.k[key];if(v==null)return null;
+  if(m.p==="sony")return irSony(v,1);
+  var n=parseInt(v,16),a=rev8((n>>>24)&255),c=rev8((n>>>8)&255);
+  return m.p==="samsung"?irSamsung(a,c):irNEC(a,c)}
 /*IR-END*/
 
 /*PROV-START*/
@@ -515,8 +541,8 @@ function initSensores(){
   SensBus.on(function(t,v){
     if(t===6){var now=Date.now();if(now-lastB>300000){lastB=now;baro.push({t:now,p:v[0]});baro=baro.filter(function(s){return now-s.t<4*3600e3});Store.set("baro",baro)}}
     if(cur===t){$("x_lv").textContent=fmtV(t,v);$("x_ld").textContent=desc(t,v)}
-    if(t===6&&$("x_q6"))$("x_q6").textContent=v[0].toFixed(1)+" hPa · "+desc(6,v)});
-  if(has(6)){quick.innerHTML='<div class="card"><b>Barómetro</b><div id="x_q6" class="hint">midiendo…</div><details><summary>¿Qué es y cómo se usa?</summary><div class="hint">'+explHTML(6)+'</div></details></div>';NB.startSensor(6,1)}
+    if(t===6&&$("x_q6")){$("x_q6").textContent=v[0].toFixed(1)+" hPa · "+desc(6,v);$("x_q6s").textContent=v[0].toFixed(1)+" hPa"}});
+  if(has(6)){quick.innerHTML='<details class="card"><summary><b>Barómetro</b><span id="x_q6s" class="hint">midiendo…</span></summary><div id="x_q6" class="hint">midiendo…</div><details><summary>¿Qué es y cómo se usa?</summary><div class="hint">'+explHTML(6)+'</div></details></details>';NB.startSensor(6,1)}
   listEl.innerHTML=sensors.map(function(s,i){return'<div class="pt"><div class="pi"><b>'+esc(s.name)+'</b><small>'+esc(lab(s.type))+' · '+esc(s.vendor||"")+' · alcance '+(+s.max).toFixed(1)+' · '+(+s.power).toFixed(2)+' mA</small><div class="ex hint" id="ex'+i+'" hidden>'+explHTML(s.type)+'</div></div><div class="pb"><button data-a="q" data-i="'+i+'">Qué es</button><button data-a="v" data-i="'+i+'">Ver</button></div></div>'}).join("");
   function cerrar(){if(cur!=null){if(!(cur===2&&window.__magOn))NB.stopSensor(cur);if(cur===6)NB.startSensor(6,1);cur=null}live.hidden=true}
   listEl.addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;var i=+b.getAttribute("data-i"),s=sensors[i];
@@ -526,6 +552,7 @@ function initSensores(){
   $("x_stop").addEventListener("click",cerrar);
   /* NFC */
   var nf=inf.nfc,nb=$("x_nfcb"),reading=false;
+  $("x_nfcs").textContent=nf===2?"activado":nf===1?"desactivado":"no disponible";
   $("x_nfc").textContent=nf===2?"NFC activado. Pulsa el botón y acerca una etiqueta o tarjeta a la parte trasera.":nf===1?"NFC desactivado: actívalo en Ajustes del móvil.":"Este móvil no tiene NFC.";
   $("x_nfcex").innerHTML='<p><b>Qué es.</b> Comunicación a 1-4 cm: lee etiquetas y tarjetas sin batería.</p><p><b>Para qué sirve.</b> Abrir enlaces, guardar un texto en una pegatina, automatizar cosas con etiquetas y leer el ID de tarjetas (no copia las cifradas).</p><p><b>Cómo se usa.</b> Pulsa «Leer» y acerca la etiqueta a la zona de la cámara trasera. Verás su ID y el texto o enlace que lleve.</p>';
   nb.disabled=nf!==2;
@@ -535,19 +562,44 @@ function initSensores(){
   initIr()}
 /* ---- Infrarrojos ---- */
 function initIr(){
-  var st=$("ir_st"),msg=$("ir_msg"),pre=$("ir_pre"),pro=$("ir_proto"),info={};
+  var st=$("ir_st"),msg=$("ir_msg"),pre=$("ir_pre"),pro=$("ir_proto"),sel=$("ir_model"),last=$("ir_last"),info={},hold=null,model=Store.get("irm","LG TV");
   try{info=JSON.parse(NB.irInfo())}catch(e){}
-  $("ir_ex").innerHTML='<p><b>Qué es.</b> Un LED infrarrojo que lanza pulsos que no se ven, como el mando de una tele.</p><p><b>Para qué sirve.</b> Controlar televisores, aires, ventiladores o proyectores cuyo código conozcas. Solo emite: no puede leer el código de tu mando ni detectar aparatos.</p><p><b>Cómo se usa.</b> Apunta el borde superior del móvil al aparato, a menos de 5-8 m y sin nada por medio. Para comprobar que emite, míralo con la cámara de otro móvil: verás un punto morado. Los códigos de ejemplo son los de encendido/apagado de LG, Samsung y Sony; si tu aparato es de otra marca, pega su código Pronto o crudo.</p>';
-  if(!info.has){st.textContent="Este móvil no tiene emisor de infrarrojos.";$("ir_ui").hidden=true;return}
+  $("ir_ex").innerHTML='<p><b>Qué es.</b> Un LED infrarrojo que lanza pulsos que no se ven, como el mando de una tele.</p><p><b>Para qué sirve.</b> Controlar televisores, aires, ventiladores o proyectores cuyo código conozcas. Solo emite: el LED no puede recibir, así que no lee el código de tu mando ni detecta aparatos (es una limitación del componente, no del programa).</p><p><b>Cómo se usa.</b> Elige el mando, apunta el borde superior del móvil al aparato (a menos de 5-8 m y sin nada por medio) y pulsa los botones. Mantén pulsado Vol, Canal o las flechas para repetir. Para comprobar que emite, míralo con la cámara de otro móvil: verás un punto morado. Los códigos son los de los mandos habituales de cada marca; si un botón no responde, tu modelo usa otros: prueba «Códigos avanzados».</p>';
+  if(!info.has){$("ir_sum").textContent="no disponible";st.textContent="Este móvil no tiene emisor de infrarrojos.";$("ir_ui").hidden=true;return}
   var rg=(info.ranges||[]).map(function(r){return Math.round(r[0]/1000)+"-"+Math.round(r[1]/1000)+" kHz"}).join(", ");
+  $("ir_sum").textContent="emisor disponible";
   st.textContent="Emisor de infrarrojos disponible"+(rg?" · portadora "+rg:"");
+  function say(s,t){msg.textContent=s;msg.className="msg"+(t?" "+t:"")}
+  function tx(r){var res=NB.irSend(r.freq,r.pattern.join(","));
+    if(res==="ok")return true;
+    say(res==="freq"?"Frecuencia fuera del rango del emisor":res==="no"?"Este móvil no tiene emisor IR":"El emisor rechazó la señal ("+res+")","err");return false}
+  /* --- mando virtual --- */
+  var R=$("ir_remote");
+  sel.innerHTML=Object.keys(IR_REMOTES).map(function(k){return'<option'+(k===model?" selected":"")+'>'+esc(k)+'</option>'}).join("");
+  function b(k,cls){var m=IR_REMOTES[model],ok=m.k[k]!=null;return'<button type="button" class="rk '+(cls||"")+'" data-k="'+k+'"'+(ok?"":" disabled")+' aria-label="'+esc(IR_KEYS[k])+'">'+esc(IR_KEYS[k])+'</button>'}
+  function sp(){return"<span></span>"}
+  function draw(){R.innerHTML='<div class="rg">'+b("pwr","pw")+b("src")+b("mute")+b("vup","hold")+b("home")+b("cup","hold")+b("vdn","hold")+b("menu")+b("cdn","hold")+'</div>'
+    +'<div class="rg">'+sp()+b("up","hold")+sp()+b("lf","hold")+b("ok","okb")+b("rt","hold")+sp()+b("dn","hold")+sp()+'</div>'
+    +'<div class="rg">'+b("back")+b("exit")+b("info")+'</div>'
+    +'<div class="rg">'+"123456789".split("").map(function(d){return b("n"+d)}).join("")+sp()+b("n0")+sp()+'</div>'
+    +(model==="Sony TV"?'<p class="hint">En Sony faltan Inicio, Menú, Atrás, Salir e Info: no tengo códigos fiables.</p>':"")}
+  sel.addEventListener("change",function(){model=sel.value;Store.set("irm",model);draw();last.textContent=""});
+  function press(k){var r=irKey(model,k);if(!r)return false;if(!tx(r))return false;last.textContent="Enviado: "+model+" · "+IR_KEYS[k];say("");if(navigator.vibrate)navigator.vibrate(15);return true}
+  function stop(){if(hold){clearInterval(hold);hold=null}}
+  R.addEventListener("pointerdown",function(e){var bt=e.target.closest("button[data-k]");if(!bt||bt.disabled)return;
+    var k=bt.getAttribute("data-k");stop();if(!press(k))return;
+    if(bt.classList.contains("hold"))hold=setInterval(function(){if(!press(k))stop()},170)});
+  ["pointerup","pointercancel","pointerleave"].forEach(function(ev){R.addEventListener(ev,stop)});
+  document.addEventListener("pointerup",stop);
+  R.addEventListener("click",function(e){var bt=e.target.closest("button[data-k]");if(bt&&!bt.disabled&&e.detail===0)press(bt.getAttribute("data-k"))});
+  R.addEventListener("contextmenu",function(e){e.preventDefault()});
+  draw();
+  /* --- códigos avanzados --- */
   pre.innerHTML='<option value="">Elegir un ejemplo…</option>'+Object.keys(IR_PRE).map(function(k){return'<option>'+esc(k)+'</option>'}).join("");
   function ui(){var p=pro.value;$("ir_ac").hidden=!(p==="nec"||p==="samsung"||p==="sony");$("ir_tx").hidden=!(p==="pronto"||p==="raw");$("ir_fw").hidden=p!=="raw"}
   pro.addEventListener("change",ui);
   pre.addEventListener("change",function(){var e=IR_PRE[pre.value];if(!e)return;pro.value=e.p;$("ir_a").value=e.a;$("ir_c").value=e.c;ui()});
-  function say(s,t){msg.textContent=s;msg.className="msg"+(t?" "+t:"")}
-  function build(p,a,c){
-    if(p==="nec")return irNEC(a,c);if(p==="samsung")return irSamsung(a,c);if(p==="sony")return irSony(c,a);return null}
+  function build(p,a,c){if(p==="nec")return irNEC(a,c);if(p==="samsung")return irSamsung(a,c);if(p==="sony")return irSony(c,a);return null}
   function current(){var p=pro.value,r;
     if(p==="pronto"){r=irPronto($("ir_txt").value);if(!r)say("Código Pronto no válido (empieza por 0000 y tiene que cuadrar la longitud)","err");return r}
     if(p==="raw"){r=irRaw(+$("ir_f").value,$("ir_txt").value);if(!r)say("Código crudo no válido: frecuencia 15000-60000 Hz y tiempos en µs","err");return r}
@@ -555,8 +607,7 @@ function initIr(){
     if(isNaN(a)||isNaN(c)){say("Escribe dirección y comando en hexadecimal (ej. 04 y 08)","err");return null}
     return build(p,a,c)}
   function send(r,times,done){
-    if(!r)return;var n=0;(function go(){var res=NB.irSend(r.freq,r.pattern.join(","));
-      if(res!=="ok"){say(res==="freq"?"Frecuencia fuera del rango del emisor":res==="no"?"Este móvil no tiene emisor IR":"El emisor rechazó la señal ("+res+")","err");return}
+    if(!r)return;var n=0;(function go(){if(!tx(r))return;
       if(++n<times)setTimeout(go,110);else if(done)done();else say("Enviado"+(times>1?" ×"+times:""),"ok")})()}
   $("ir_send").addEventListener("click",function(){send(current(),1)});
   $("ir_send3").addEventListener("click",function(){send(current(),3)});
