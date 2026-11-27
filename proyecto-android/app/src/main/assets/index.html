@@ -47,6 +47,8 @@ details.card>summary .hint{margin:0}
 .rk{min-height:50px;font-weight:700;touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;padding:0 4px;font-size:.95rem}
 .rk.pw{background:#c0392b;border-color:#c0392b;color:#fff}.rk.okb{background:var(--acc);border-color:var(--acc);color:var(--accink)}
 .rk:disabled{opacity:.3}.rk:active{transform:scale(.95);filter:brightness(1.15)}
+.pt.lg{flex-wrap:wrap}.pt.lg .pb{width:100%;flex-wrap:wrap}.pt.lg .pb button{flex:1;min-width:64px}
+.ren{min-height:42px;padding:0 10px;margin-bottom:4px}
 [hidden]{display:none!important}
 </style></head><body><main>
 <h1>Rumbo</h1>
@@ -313,7 +315,7 @@ function gpsTxt(){var f=Loc.fix;if(!f)return Loc.err===1?"Sin permiso de ubicaci
 /*VOLVER-START*/
 function initVolver(){
   var st=$("v_st"),distEl=$("v_dist"),sub=$("v_sub"),msg=$("v_msg"),list=$("v_list"),dial=$("v_dial"),saveB=$("v_save"),
-      pts=Store.get("pts",[]),sel=Store.get("sel",null),saving=null,arrivedFor=null,mt=null;
+      pts=Store.get("pts",[]),sel=Store.get("sel",null),saving=null,arrivedFor=null,mt=null,editing=null;
   dial.innerHTML=dialSVG();
   function say(s,t){msg.textContent=s||"";msg.className="msg"+(t?" "+t:"");clearTimeout(mt);if(t==="ok")mt=setTimeout(function(){msg.textContent="";msg.className="msg"},2500)}
   function persist(){if(!Store.set("pts",pts)||!Store.set("sel",sel))say("Aquí no se pueden guardar los puntos: usa «Copiar copia de seguridad».","err")}
@@ -321,9 +323,22 @@ function initVolver(){
   function nid(){return Date.now().toString(36)+Math.floor(Math.random()*1296).toString(36)}
   function nombre(){var n=$("v_name").value.trim();$("v_name").value="";return n||"Punto "+(pts.length+1)}
   function render(){
-    list.innerHTML=pts.length?pts.map(function(p){return'<div class="pt'+(p.id===sel?" sel":"")+'"><div class="pi"><b>'+esc(p.name)+'</b><small>'+p.lat.toFixed(5)+', '+p.lon.toFixed(5)+' · ±'+Math.round(p.acc||0)+' m · <span data-d="'+p.id+'"></span></small></div><div class="pb"><button data-a="go" data-id="'+p.id+'">Ir</button><button data-a="cp" data-id="'+p.id+'">Copiar</button><button data-a="del" data-id="'+p.id+'">Borrar</button></div></div>'}).join(""):'<p class="hint">Aún no hay puntos. Guarda tu posición para poder volver a ella.</p>'}
+    list.innerHTML=pts.length?pts.map(function(p){var ed=p.id===editing;
+      return'<div class="pt lg'+(p.id===sel?" sel":"")+'"><div class="pi">'+(ed?'<input class="ren" data-id="'+p.id+'" maxlength="40" value="'+esc(p.name)+'" aria-label="Nombre del punto" autocomplete="off">':'<b>'+esc(p.name)+'</b>')+'<small>'+p.lat.toFixed(5)+', '+p.lon.toFixed(5)+' · ±'+Math.round(p.acc||0)+' m · <span data-d="'+p.id+'"></span></small></div><div class="pb">'+
+        (ed?'<button data-a="rok" data-id="'+p.id+'">Guardar</button><button data-a="rno" data-id="'+p.id+'">Cancelar</button>'
+           :'<button data-a="go" data-id="'+p.id+'">Ir</button><button data-a="ren" data-id="'+p.id+'">Editar</button><button data-a="cp" data-id="'+p.id+'">Copiar</button><button data-a="del" data-id="'+p.id+'">Borrar</button>')+'</div></div>'}).join(""):'<p class="hint">Aún no hay puntos. Guarda tu posición para poder volver a ella.</p>'}
+  function renombrar(ok){
+    var inp=list.querySelector("input.ren");if(!inp){editing=null;return}
+    var p=byId(inp.getAttribute("data-id")),n=inp.value.trim();
+    if(ok&&p&&n&&n!==p.name){p.name=n.slice(0,40);persist();say("Nombre cambiado a «"+p.name+"»","ok")}
+    editing=null;render()}
+  list.addEventListener("keydown",function(e){if(!e.target.classList.contains("ren"))return;
+    if(e.key==="Enter"){e.preventDefault();renombrar(true)}else if(e.key==="Escape"){e.preventDefault();renombrar(false)}});
   list.addEventListener("click",function(e){
     var b=e.target.closest("button");if(!b)return;var id=b.getAttribute("data-id"),a=b.getAttribute("data-a"),p=byId(id);if(!p)return;
+    if(a==="rok"){renombrar(true);return}
+    if(a==="rno"){renombrar(false);return}
+    if(a==="ren"){editing=id;render();var inp=list.querySelector("input.ren");if(inp){inp.focus();inp.select()}return}
     if(a==="go"){sel=id;arrivedFor=null;persist();render()}
     else if(a==="cp")copiar(p.lat.toFixed(6)+", "+p.lon.toFixed(6),msg);
     else if(a==="del"){if(b.getAttribute("data-c")){pts=pts.filter(function(x){return x.id!==id});if(sel===id)sel=null;persist();render()}
@@ -521,11 +536,40 @@ var EXPL={
 29:["Sensor de evento: avisa cuando llevas un rato sin moverte.","Ahorrar batería cuando el móvil está quieto.","Déjalo en la mesa unos segundos."],
 30:["Sensor de evento: avisa cuando se mueve el móvil.","Alarmas de movimiento y ahorro de batería.","Déjalo en la mesa y muévelo."],
 35:["Como el acelerómetro, sin corregir automáticamente el sesgo.","Calibraciones propias.","Plano y quieto: Z≈9,8."]};
+/* sensores concretos de Xiaomi, explicados por el nombre del chip (deducido: Xiaomi no los documenta) */
+var NAMEX={
+"pickup wakeup":["Gesto de «coger el móvil»: salta cuando lo levantas de la mesa.","Encender la pantalla o la pantalla siempre activa al cogerlo.","Déjalo en la mesa, pulsa «Ver» y cógelo: debería avisar."],
+"lsm6dso_temp":["Termómetro interno del chip de movimiento (acelerómetro y giroscopio de ST). Mide el calor del propio chip, no el del ambiente.","Dar una idea de cuánto se calienta el móvil y compensar la deriva de esos sensores.","El número sube cuando el móvil se calienta. No sirve de termómetro ambiental."],
+"sx9331":["Sensor capacitivo de Semtech: detecta un cuerpo (mano, cabeza) muy cerca de la antena, sin tocar.","El móvil lo usa para bajar la potencia de radio cerca del cuerpo (SAR) y saber cómo lo sujetas.","Acerca la mano a un borde sin tocarlo y mira si cambia el valor."],
+"sar_algo":["Resultado del algoritmo SAR: dice si hay un cuerpo cerca de las antenas.","Decidir cuándo reducir la potencia de transmisión.","Cambia al acercar o alejar la mano o la cabeza del móvil."],
+"sar_algo_1":["Segundo canal del algoritmo SAR (otra antena o zona del móvil).","Decidir cuándo reducir la potencia de transmisión.","Cambia al acercar o alejar la mano o la cabeza del móvil."],
+"ak7323":["Chip de AKM, fabricante de sensores magnéticos y de componentes de cámara. Xiaomi no dice para qué lo usa.","Probablemente ayuda a la cámara o detecta un imán (funda o accesorio).","Pulsa «Ver» y acerca un imán por detrás del móvil. Si cambia, es magnético; si no, no lo sabemos."],
+"tcs3408_flicker":["Sensor de color con detector de parpadeo de luz (de AMS).","Detectar el parpadeo de lámparas LED o fluorescentes y evitar bandas en fotos y vídeos.","Míralo bajo una bombilla LED barata y compáralo con luz natural: el valor suele cambiar."],
+"tcs3408_back":["Sensor de color de la parte trasera (de AMS).","Medir la luz de ese lado para el balance de blancos de la cámara.","Pulsa «Ver» y tapa la parte trasera con la mano: debe bajar."],
+"tcs3408_cct":["Temperatura de color de la luz (en kelvin), calculada con el sensor trasero.","Ajustar el tono de la pantalla y el blanco de las fotos.","Una bombilla cálida marca unos 2700 K; la luz del día, 5500-6500 K."],
+"tcs3408_cct_str":["Flujo de datos de la temperatura de color del sensor trasero.","Uso interno y calibración.","Compáralo con el CCT normal."],
+"stk3bcx_cct":["Temperatura de color de la luz (en kelvin), calculada con el sensor delantero.","Ajustar el tono de la pantalla (modo lectura automático).","Una bombilla cálida marca unos 2700 K; la luz del día, 5500-6500 K."],
+"stk3bcx_cct_str":["Flujo de datos de la temperatura de color del sensor delantero.","Uso interno y calibración.","Compáralo con el CCT normal."],
+"dual_cct":["Temperatura de color que mezcla el sensor delantero y el trasero.","Que el color de la pantalla se ajuste mejor a la luz de la habitación.","Es la misma idea que los otros CCT, con la lectura ya combinada."],
+"ps_factory_strm":["Datos de fábrica, sin procesar, del sensor de proximidad.","Calibración interna de Xiaomi.","Puedes verlo, pero son valores crudos sin unidades claras."],
+"als_factory_str":["Datos de fábrica, sin procesar, del sensor de luz.","Calibración interna de Xiaomi.","Puedes verlo, pero son valores crudos sin unidades claras."],
+"fod wakeup":["«Fingerprint On Display»: avisa cuando apoyas el dedo en la zona del lector de huella bajo la pantalla.","Encender el lector óptico para leer la huella.","Pulsa «Ver» y apoya el dedo en la zona del lector: debería saltar. Solo avisa del toque; no da datos de la huella ni del pulso."],
+"aod wakeup":["Evento de la pantalla siempre activa (Always-On Display).","Despertar o apagar esa pantalla en reposo.","Con la pantalla siempre activa encendida, mira si salta al coger o tocar el móvil."],
+"nonui wakeup":["Evento de despertar «sin interfaz»: acciones que despiertan el móvil sin encender la pantalla.","Uso interno del sistema.","Puede no mostrar nada útil."],
+"light_smd":["Detector de cambios bruscos de luz.","Reaccionar cuando pasas de luz a oscuridad (sacarlo del bolsillo, encender una luz).","Tapa y destapa el sensor de luz y mira si salta."],
+"screen_down":["Detecta que el móvil está boca abajo sobre una superficie.","Silenciar o activar «no molestar» al ponerlo boca abajo.","Ponlo boca abajo en la mesa, pulsa «Ver» y dale la vuelta."],
+"pocket":["Detecta que el móvil está en un bolsillo o bolso (mezcla luz y proximidad).","Evitar pulsaciones accidentales y ajustar el volumen.","Tapa con la mano la zona de arriba (luz y proximidad): debería marcar «en bolsillo»."],
+"touch sensor":["Detector de toque de gran superficie: palma o mejilla sobre la pantalla (por «Large Area Detect»).","Ignorar toques accidentales al escribir o en llamadas.","Apoya la palma entera en la pantalla: debería saltar."],
+"dynamic sensor manager":["Aviso de Android cuando se conecta o desconecta un sensor externo (USB o Bluetooth).","Admitir sensores externos sin cambiar las apps.","Solo reaccionará si conectas un sensor externo compatible."]};
+function fmtE(e,evt,ded){return'<p><b>Qué es.</b> '+esc(e[0])+'</p><p><b>Para qué sirve.</b> '+esc(e[1])+'</p><p><b>Cómo se usa.</b> '+esc(e[2])+'</p>'+(evt?'<p><b>Ojo.</b> Es un sensor de evento: solo avisa cuando ocurre algo.</p>':"")+(ded?'<p class="hint">Explicación deducida por el nombre del chip: Xiaomi no documenta este sensor.</p>':"")}
+function explS(s){var n=NAMEX[String(s.name||"").toLowerCase()],evt=!!(EVT[s.type]||s.mode===2);return n?fmtE(n,evt,true):fmtE(explOf(s.type),evt,false)}
+var MODO=["continuo","al cambiar","evento único","evento"];
 function explOf(t){return EXPL[t]||["Sensor propio del fabricante (tipo "+t+"). No es estándar de Android.","Suele servir para funciones internas del móvil: gestos, pantalla, cámara o salud.","Puedes verlo en vivo, pero sus valores no están documentados."]}
-function explHTML(t){var e=explOf(t);return'<p><b>Qué es.</b> '+esc(e[0])+'</p><p><b>Para qué sirve.</b> '+esc(e[1])+'</p><p><b>Cómo se usa.</b> '+esc(e[2])+'</p>'+(EVT[t]?'<p><b>Ojo.</b> Es un sensor de evento: solo avisa cuando ocurre algo.</p>':"")}
+function explHTML(t){var e=explOf(t);return fmtE(e,!!EVT[t],false)}
+function explHTML_old(t){var e=explOf(t);return'<p><b>Qué es.</b> '+esc(e[0])+'</p><p><b>Para qué sirve.</b> '+esc(e[1])+'</p><p><b>Cómo se usa.</b> '+esc(e[2])+'</p>'+(EVT[t]?'<p><b>Ojo.</b> Es un sensor de evento: solo avisa cuando ocurre algo.</p>':"")}
 function initSensores(){
   function lab(t){return TY[t]?TY[t][0]:"Sensor del fabricante ("+t+")"}
-  var info=$("x_info"),quick=$("x_quick"),listEl=$("x_list"),live=$("x_live"),cur=null,sensors=[],baro=Store.get("baro",[]),lastB=0;
+  var info=$("x_info"),quick=$("x_quick"),listEl=$("x_list"),live=$("x_live"),cur=null,curS=null,evn=0,sensors=[],baro=Store.get("baro",[]),lastB=0;
   if(!NB){info.textContent="Esta pestaña solo funciona dentro de la app nativa (APK de Rumbo): el navegador no da acceso al barómetro, la luz, el NFC ni los infrarrojos.";$("x_ir").hidden=true;$("x_nfccard").hidden=true;return}
   var inf={};try{inf=JSON.parse(NB.info())}catch(e){}
   sensors=inf.sensors||[];
@@ -542,15 +586,17 @@ function initSensores(){
   function fmtV(t,v){var u=TY[t]?TY[t][1]:"";return v.slice(0,3).map(function(x){return x.toFixed(2)}).join("  ")+(u?" "+u:"")}
   SensBus.on(function(t,v){
     if(t===6){var now=Date.now();if(now-lastB>300000){lastB=now;baro.push({t:now,p:v[0]});baro=baro.filter(function(s){return now-s.t<4*3600e3});Store.set("baro",baro)}}
-    if(cur===t){$("x_lv").textContent=fmtV(t,v);$("x_ld").textContent=desc(t,v)}
+    if(cur===t){
+      if(curS&&(EVT[t]||curS.mode===2)){evn++;$("x_lv").textContent="avisos: "+evn+" · último a las "+new Date().toLocaleTimeString()+" · valor "+fmtV(t,v)}
+      else{$("x_lv").textContent=fmtV(t,v);$("x_ld").textContent=desc(t,v)}}
     if(t===6&&$("x_q6")){$("x_q6").textContent=v[0].toFixed(1)+" hPa · "+desc(6,v);$("x_q6s").textContent=v[0].toFixed(1)+" hPa"}});
   if(has(6)){quick.innerHTML='<details class="card"><summary><b>Barómetro</b><span id="x_q6s" class="hint">midiendo…</span></summary><div id="x_q6" class="hint">midiendo…</div><details><summary>¿Qué es y cómo se usa?</summary><div class="hint">'+explHTML(6)+'</div></details></details>';NB.startSensor(6,1)}
-  listEl.innerHTML=sensors.map(function(s,i){return'<div class="pt"><div class="pi"><b>'+esc(s.name)+'</b><small>'+esc(lab(s.type))+' · '+esc(s.vendor||"")+' · alcance '+(+s.max).toFixed(1)+' · '+(+s.power).toFixed(2)+' mA</small><div class="ex hint" id="ex'+i+'" hidden>'+explHTML(s.type)+'</div></div><div class="pb"><button data-a="q" data-i="'+i+'">Qué es</button><button data-a="v" data-i="'+i+'">Ver</button></div></div>'}).join("");
+  listEl.innerHTML=sensors.map(function(s,i){return'<div class="pt"><div class="pi"><b>'+esc(s.name)+'</b><small>'+esc(lab(s.type))+' · '+esc(s.vendor||"")+' · alcance '+(+s.max).toFixed(1)+' · '+(MODO[s.mode]||"continuo")+(s.wake?" · despierta el móvil":"")+'</small><div class="ex hint" id="ex'+i+'" hidden>'+explS(s)+'</div></div><div class="pb"><button data-a="q" data-i="'+i+'">Qué es</button><button data-a="v" data-i="'+i+'">Ver</button></div></div>'}).join("");
   function cerrar(){if(cur!=null){if(!(cur===2&&window.__magOn))NB.stopSensor(cur);if(cur===6)NB.startSensor(6,1);cur=null}live.hidden=true}
   listEl.addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;var i=+b.getAttribute("data-i"),s=sensors[i];
     if(b.getAttribute("data-a")==="q"){var ex=$("ex"+i);ex.hidden=!ex.hidden;return}
-    cerrar();cur=s.type;$("x_ln").textContent=s.name+" · "+lab(s.type);$("x_lv").textContent=EVT[s.type]?"sensor de evento: salta cuando ocurre algo":"esperando datos…";$("x_ld").textContent="";
-    $("x_ex").innerHTML=explHTML(s.type);live.hidden=false;NB.startSensor(s.type,10);live.scrollIntoView({block:"nearest"})});
+    cerrar();cur=s.type;$("x_ln").textContent=s.name+" · "+lab(s.type);$("x_lv").textContent=(EVT[s.type]||s.mode===2)?"sensor de evento: espera a que ocurra (se re-arma solo)":"esperando datos…";$("x_ld").textContent="";
+    $("x_ex").innerHTML=explS(s);curS=s;evn=0;live.hidden=false;NB.startSensor(s.type,10);live.scrollIntoView({block:"nearest"})});
   $("x_stop").addEventListener("click",cerrar);
   /* NFC */
   var nf=inf.nfc,nb=$("x_nfcb"),reading=false;
