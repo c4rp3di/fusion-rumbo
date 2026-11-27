@@ -14,6 +14,8 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.hardware.TriggerEvent
+import android.hardware.TriggerEventListener
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
@@ -86,6 +88,12 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener,
     override fun onPause() {
         super.onPause()
         sm.unregisterListener(this)
+        for (t in streams.keys) {
+            val s = sm.getDefaultSensor(t)
+            if (s != null && s.reportingMode == Sensor.REPORTING_MODE_ONE_SHOT) {
+                try { sm.cancelTriggerSensor(trig, s) } catch (e: Exception) { }
+            }
+        }
         try { lm.removeUpdates(this) } catch (e: Exception) { }
         try { NfcAdapter.getDefaultAdapter(this)?.disableReaderMode(this) } catch (e: Exception) { }
         endBle()
@@ -115,8 +123,27 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener,
 
     private fun finite(f: Float): Double = if (f.isNaN() || f.isInfinite()) 0.0 else f.toDouble()
 
+    /** Los sensores de evento único (movimiento significativo, gestos…) se piden con otro método y hay que re-armarlos. */
+    private val trig = object : TriggerEventListener() {
+        override fun onTrigger(event: TriggerEvent) {
+            val t = event.sensor.type
+            val vals = JSONArray()
+            for (i in 0 until Math.min(event.values.size, 6)) vals.put(finite(event.values[i]))
+            js("onSensor", "$t,$vals,0")
+            if (streams.containsKey(t)) {
+                try { sm.requestTriggerSensor(this, event.sensor) } catch (e: Exception) { }
+            }
+        }
+    }
+
     private fun reg(t: Int, fast: Boolean) {
         val s = sm.getDefaultSensor(t) ?: return
+        if (s.reportingMode == Sensor.REPORTING_MODE_ONE_SHOT) {
+            try { sm.requestTriggerSensor(trig, s) } catch (e: Exception) {
+                js("onNative", "{\"k\":\"sensor\",\"type\":$t,\"err\":\"fail\"}")
+            }
+            return
+        }
         val rate = if (fast) SensorManager.SENSOR_DELAY_GAME else SensorManager.SENSOR_DELAY_UI
         try {
             sm.registerListener(this, s, rate, main)
@@ -137,6 +164,10 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener,
     private fun unreg(t: Int) {
         if (needed(t)) return
         val s = sm.getDefaultSensor(t) ?: return
+        if (s.reportingMode == Sensor.REPORTING_MODE_ONE_SHOT) {
+            try { sm.cancelTriggerSensor(trig, s) } catch (e: Exception) { }
+            return
+        }
         sm.unregisterListener(this, s)
     }
 
@@ -462,6 +493,8 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener,
                 x.put("vendor", s.vendor)
                 x.put("max", finite(s.maximumRange))
                 x.put("power", finite(s.power))
+                x.put("mode", s.reportingMode)
+                x.put("wake", s.isWakeUpSensor)
                 arr.put(x)
             }
             o.put("sensors", arr)
